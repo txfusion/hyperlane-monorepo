@@ -20,7 +20,7 @@ describe('TokenPriceGetter', () => {
 
   beforeEach(() => {
     tokenPriceGetter = new CoinGeckoTokenPriceGetter({
-      chainMetadata: { ethereum, solanamainnet, ...testChainMetadata },
+      chainMetadata: { ...testChainMetadata },
       apiKey: 'test',
       expirySeconds: 10,
       sleepMsBetweenRequests: 10,

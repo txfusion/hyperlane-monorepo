@@ -14,6 +14,7 @@ export const isIsmStatic: Record<IsmType, boolean> = {
   [IsmType.ROUTING]: false,
   [IsmType.FALLBACK_ROUTING]: false,
   [IsmType.AGGREGATION]: true,
+  [IsmType.STORAGE_AGGREGATION]: false,
   [IsmType.MERKLE_ROOT_MULTISIG]: true,
   [IsmType.MESSAGE_ID_MULTISIG]: true,
   [IsmType.STORAGE_MERKLE_ROOT_MULTISIG]: false,
