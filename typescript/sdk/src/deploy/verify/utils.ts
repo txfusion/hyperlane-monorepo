@@ -1,11 +1,16 @@
 import { ethers, utils } from 'ethers';
+import { Hex, decodeFunctionData, parseAbi } from 'viem';
 
 import {
   ProxyAdmin__factory,
   TransparentUpgradeableProxy__factory,
 } from '@hyperlane-xyz/core';
-import { ZkSyncArtifact } from '@hyperlane-xyz/core/zksync-artifacts';
-import { Address, assert, eqAddress } from '@hyperlane-xyz/utils';
+import {
+  ZkSyncArtifact,
+  getZkArtifactByName,
+} from '@hyperlane-xyz/core/zksync-artifacts';
+import { ChainTechnicalStack } from '@hyperlane-xyz/sdk';
+import { Address, assert, eqAddress, sleep } from '@hyperlane-xyz/utils';
 
 import { ExplorerFamily } from '../../metadata/chainMetadataTypes.js';
 import { MultiProvider } from '../../providers/MultiProvider.js';
@@ -174,6 +179,14 @@ export async function getConstructorArgumentsApi({
         multiProvider,
       });
       break;
+    case ExplorerFamily.zksync:
+      constructorArgs = await getZKSyncExplorerConstructorArgs({
+        chainName,
+        contractAddress,
+        multiProvider,
+        bytecode,
+      });
+      break;
     default:
       throw new Error(`Explorer Family ${family} unsupported`);
   }
@@ -254,6 +267,71 @@ export async function getBlockScoutConstructorArgs({
   return (await smartContractResp.json()).constructor_args;
 }
 
+export async function getZKSyncExplorerConstructorArgs({
+  chainName,
+  contractAddress,
+  multiProvider,
+}: {
+  bytecode: string;
+  chainName: string;
+  contractAddress: Address;
+  multiProvider: MultiProvider;
+}): Promise<string> {
+  const { apiUrl: blockExplorerApiUrl, apiKey: blockExplorerApiKey } =
+    multiProvider.getExplorerApi(chainName);
+
+  const url = new URL(
+    blockExplorerApiUrl.replace('verification/contract_verification', 'api'),
+  );
+  url.searchParams.append('module', 'contract');
+  url.searchParams.append('action', 'getcontractcreation');
+  url.searchParams.append('contractaddresses', contractAddress);
+
+  if (blockExplorerApiKey)
+    url.searchParams.append('apikey', blockExplorerApiKey);
+
+  await sleep(6000);
+
+  const explorerResp = await fetch(url);
+  const creationTx = (await explorerResp.json()).result[0].txHash;
+  console.log(url.toString());
+  console.log(creationTx);
+
+  // Fetch deployment bytecode (includes constructor args)
+  assert(creationTx, 'Contract creation transaction not found!');
+  const metadata = multiProvider.getChainMetadata(chainName);
+  const rpcUrl = metadata.rpcUrls[0].http;
+
+  const creationTxResp = await fetch(rpcUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      method: 'eth_getTransactionByHash',
+      params: [creationTx],
+      id: 1,
+      jsonrpc: '2.0',
+    }),
+  });
+
+  // https://zero-network.calderaexplorer.xyz/api?module=contract&action=getcontractcreation&contractaddresses=0x3f7F02453518A55C0c6F89F0A6A8ab6c22Da01Df
+
+  const tx = await creationTxResp.json();
+
+  // Truncate the deployment bytecode
+  const creationInput: string = tx.result.input;
+
+  const res = decodeFunctionData({
+    abi: parseAbi(['function create(bytes32,bytes32,bytes)']),
+    data: creationInput as Hex,
+  });
+
+  console.log(res.args[2]);
+
+  return res.args[2].replace('0x', '');
+}
+
 export async function getProxyAndAdminInput({
   chainName,
   multiProvider,
@@ -269,10 +347,17 @@ export async function getProxyAndAdminInput({
   const provider = multiProvider.getProvider(chainName);
 
   const proxyAdminAddress = await proxyAdmin(provider, proxyAddress);
+
+  const proxyAdminHandledByteCode = await handleZKSyncByteCode({
+    bytecode: ProxyAdmin__factory.bytecode,
+    chainName,
+    contractName: 'ProxyAdmin',
+    multiProvider,
+  });
   const proxyAdminConstructorArgs = await getConstructorArgumentsApi({
     chainName,
     multiProvider,
-    bytecode: ProxyAdmin__factory.bytecode,
+    bytecode: proxyAdminHandledByteCode,
     contractAddress: proxyAdminAddress,
   });
   const proxyAdminInput = buildVerificationInput(
@@ -281,11 +366,19 @@ export async function getProxyAndAdminInput({
     proxyAdminConstructorArgs,
   );
 
+  const transparentUpgradeableProxyHandledByteCode = await handleZKSyncByteCode(
+    {
+      bytecode: TransparentUpgradeableProxy__factory.bytecode,
+      chainName,
+      contractName: 'TransparentUpgradeableProxy',
+      multiProvider,
+    },
+  );
   const proxyConstructorArgs = await getConstructorArgumentsApi({
     chainName,
     multiProvider,
     contractAddress: proxyAddress,
-    bytecode: TransparentUpgradeableProxy__factory.bytecode,
+    bytecode: transparentUpgradeableProxyHandledByteCode,
   });
   const transparentUpgradeableProxyInput = buildVerificationInput(
     'TransparentUpgradeableProxy',
@@ -311,8 +404,14 @@ export async function getImplementationInput({
   implementationAddress: Address;
   multiProvider: MultiProvider;
 }): Promise<ContractVerificationInput> {
-  const implementationConstructorArgs = await getConstructorArgumentsApi({
+  const handledByteCode = await handleZKSyncByteCode({
     bytecode,
+    chainName,
+    contractName,
+    multiProvider,
+  });
+  const implementationConstructorArgs = await getConstructorArgumentsApi({
+    bytecode: handledByteCode,
     chainName,
     multiProvider,
     contractAddress: implementationAddress,
@@ -322,4 +421,23 @@ export async function getImplementationInput({
     implementationAddress,
     implementationConstructorArgs,
   );
+}
+
+async function handleZKSyncByteCode({
+  bytecode,
+  chainName,
+  contractName,
+  multiProvider,
+}: {
+  bytecode: string;
+  chainName: string;
+  contractName: string;
+  multiProvider: MultiProvider;
+}): Promise<string> {
+  const { technicalStack } = multiProvider.getChainMetadata(chainName);
+  const zkArtifact = await getZkArtifactByName(contractName);
+  assert(zkArtifact, 'zkArtifact is not provided');
+  return technicalStack === ChainTechnicalStack.ZKSync
+    ? zkArtifact.bytecode
+    : bytecode;
 }

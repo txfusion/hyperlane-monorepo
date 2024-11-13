@@ -6,6 +6,7 @@ import { ChainMap } from '../../types.js';
 import { MultiGeneric } from '../../utils/MultiGeneric.js';
 
 import { ContractVerifier } from './ContractVerifier.js';
+import { ZKSyncContractVerifier } from './ZKSyncContractVerifier.js';
 import { BuildArtifact, CompilerOptions, VerificationInput } from './types.js';
 
 export class PostDeploymentContractVerifier extends MultiGeneric<VerificationInput> {
@@ -45,11 +46,18 @@ export class PostDeploymentContractVerifier extends MultiGeneric<VerificationInp
         this.logger.debug(`Verifying ${chain}...`);
         for (const input of this.get(chain)) {
           try {
-            await this.contractVerifier.verifyContract(
-              chain,
-              input,
-              this.logger,
-            );
+            if (family === ExplorerFamily.zksync) {
+              const zksyncVerifier = new ZKSyncContractVerifier(
+                this.multiProvider,
+              );
+              await zksyncVerifier?.verifyContract(chain, input, this.logger);
+            } else {
+              await this.contractVerifier.verifyContract(
+                chain,
+                input,
+                this.logger,
+              );
+            }
           } catch (error) {
             this.logger.error(
               { name: input.name, address: input.address },

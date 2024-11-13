@@ -63,7 +63,7 @@ export class ZKSyncContractVerifier extends BaseContractVerifier {
     verificationLogger: Logger,
   ): Promise<void> {
     const contractType: string = input.isProxy ? 'proxy' : 'implementation';
-
+    console.log(input.address);
     verificationLogger.debug(`📝 Verifying ${contractType}...`);
 
     const data = this.getImplementationData(chain, input, verificationLogger);
