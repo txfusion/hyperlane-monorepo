@@ -1,5 +1,5 @@
 import { confirm } from '@inquirer/prompts';
-import { ethers } from 'ethers';
+import { Signer } from 'ethers';
 
 import {
   DEFAULT_GITHUB_REGISTRY,
@@ -219,10 +219,12 @@ function isCanonicalRepoUrl(url: string) {
  * @param customChains Custom chains specified by the user
  * @returns a new MultiProvider
  */
-async function getMultiProvider(registry: IRegistry, signer?: ethers.Signer) {
+async function getMultiProvider(registry: IRegistry, signer?: Signer) {
   const chainMetadata = await registry.getMetadata();
   const multiProvider = new MultiProvider(chainMetadata);
+
   if (signer) multiProvider.setSharedSigner(signer);
+
   return multiProvider;
 }
 
