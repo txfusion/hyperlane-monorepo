@@ -18,6 +18,7 @@ export const isIsmStatic: Record<IsmType, boolean> = {
   [IsmType.MESSAGE_ID_MULTISIG]: true,
   [IsmType.STORAGE_MERKLE_ROOT_MULTISIG]: false,
   [IsmType.STORAGE_MESSAGE_ID_MULTISIG]: false,
+  [IsmType.STORAGE_AGGREGATION]: false,
   [IsmType.TEST_ISM]: false,
   [IsmType.PAUSABLE]: false,
   [IsmType.TRUSTED_RELAYER]: false,

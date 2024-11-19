@@ -121,7 +121,7 @@ async function executeDelivery({
   const core = HyperlaneCore.fromAddressesMap(chainAddresses, multiProvider);
 
   const provider = multiProvider.getProvider(origin);
-  const connectedSigner = signer.connect(provider);
+  const connectedSigner = signer.connect(provider as any);
 
   const warpCore = WarpCore.FromConfig(
     MultiProtocolProvider.fromMultiProvider(multiProvider),

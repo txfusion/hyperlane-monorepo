@@ -166,11 +166,11 @@ export async function deployOrUseExistingCore(
 
   return addresses;
 }
-
 export async function getDomainId(
   chainName: string,
   key: string,
-): Promise<string> {
+  registryPath?: string,
+) {
   const { registry } = await getContext({
     registryUri: registryPath ?? REGISTRY_PATH,
     registryOverrideUri: '',
