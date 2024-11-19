@@ -92,6 +92,7 @@ export {
   DeployerOptions,
   HyperlaneDeployer,
 } from './deploy/HyperlaneDeployer.js';
+export { StarknetDeployer } from './deploy/StarknetDeployer.js';
 export { HyperlaneProxyFactoryDeployer } from './deploy/HyperlaneProxyFactoryDeployer.js';
 export {
   CheckerViolation,
@@ -544,6 +545,7 @@ export {
 } from './utils/gnosisSafe.js';
 
 export { EvmCoreModule } from './core/EvmCoreModule.js';
+export { StarknetCoreModule } from './core/StarknetCoreModule.js';
 export {
   isProxy,
   proxyAdmin,
