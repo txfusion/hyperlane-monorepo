@@ -1,9 +1,8 @@
-import { Account, RpcProvider } from 'starknet';
 import { stringify as yamlStringify } from 'yaml';
 
 import { buildArtifact as coreBuildArtifact } from '@hyperlane-xyz/core/buildArtifact.js';
 import { ChainAddresses } from '@hyperlane-xyz/registry';
-import { DeployedCoreAddresses } from '@hyperlane-xyz/sdk';
+import { DeployedCoreAddresses, MultiProvider } from '@hyperlane-xyz/sdk';
 import {
   ChainMap,
   ChainName,
@@ -13,10 +12,11 @@ import {
   ExplorerLicenseType,
   StarknetCoreModule,
 } from '@hyperlane-xyz/sdk';
-import { ProtocolType } from '@hyperlane-xyz/utils';
+import { ProtocolType, assert } from '@hyperlane-xyz/utils';
 
 import { MINIMUM_CORE_DEPLOY_GAS } from '../consts.js';
 import { requestAndSaveApiKeys } from '../context/context.js';
+import { MultiProtocolSignerManager } from '../context/strategies/signer/MultiProtocolSignerManager.js';
 import { WriteCommandContext } from '../context/types.js';
 import { log, logBlue, logGray, logGreen } from '../logger.js';
 import { runSingleChainSelectionStep } from '../utils/chains.js';
@@ -33,6 +33,17 @@ interface DeployParams {
   context: WriteCommandContext;
   chain: ChainName;
   config: CoreConfig;
+}
+
+interface EthereumDeployParams extends DeployParams {
+  apiKeys: ChainMap<string>;
+}
+
+interface StarknetDeployParams {
+  chain: ChainName;
+  config: CoreConfig;
+  multiProtocolSigner: MultiProtocolSignerManager | undefined;
+  multiProvider: MultiProvider;
 }
 
 interface ApplyParams extends DeployParams {
@@ -53,9 +64,9 @@ export async function runCoreDeploy(params: DeployParams) {
     registry,
     skipConfirmation,
     multiProvider,
+    multiProtocolSigner,
   } = context;
 
-  // Select a dry-run chain if it's not supplied
   if (dryRunChain) {
     chain = dryRunChain;
   } else if (!chain) {
@@ -65,77 +76,34 @@ export async function runCoreDeploy(params: DeployParams) {
       'Select chain to connect:',
     );
   }
+
   let apiKeys: ChainMap<string> = {};
   if (!skipConfirmation)
     apiKeys = await requestAndSaveApiKeys([chain], chainMetadata, registry);
-
-  const signer = multiProvider.getSigner(chain);
-
-  const deploymentParams: DeployParams = {
-    context: { ...context, signer },
-    chain,
-    config,
-  };
-
-  await runDeployPlanStep(deploymentParams);
 
   let deployedAddresses: ChainAddresses;
   switch (multiProvider.tryGetProtocol(chain)) {
     case ProtocolType.Ethereum:
       {
-        await runPreflightChecksForChains({
-          ...deploymentParams,
-          chains: [chain],
-          minGas: MINIMUM_CORE_DEPLOY_GAS,
-        });
-
-        const userAddress = await signer.getAddress();
-
-        const initialBalances = await prepareDeploy(context, userAddress, [
-          chain,
-        ]);
-
-        const contractVerifier = new ContractVerifier(
-          multiProvider,
-          apiKeys,
-          coreBuildArtifact,
-          ExplorerLicenseType.MIT,
-        );
-
-        logBlue('🚀 All systems ready, captain! Beginning deployment...');
-        const evmCoreModule = await EvmCoreModule.create({
+        const signer = multiProvider.getSigner(chain);
+        deployedAddresses = await deployEthereumCore({
+          context: { ...context, signer },
           chain,
           config,
-          multiProvider,
-          contractVerifier,
+          apiKeys,
         });
-
-        await completeDeploy(context, 'core', initialBalances, userAddress, [
-          chain,
-        ]);
-        deployedAddresses = evmCoreModule.serialize();
       }
       break;
-
     case ProtocolType.Starknet:
       {
-        const domainId = multiProvider.getDomainId(chain);
-        const provider = new RpcProvider({
-          nodeUrl: 'http://127.0.0.1:5050',
-        });
-        const account = new Account(
-          provider,
-          '0x4acc9b79dae485fb71f309f5b62501a1329789f4418bb4c25353ad5617be4d4',
-          '0x000000000000000000000000000000002f663fafebbee32e0698f7e13f886c73',
-        );
-        const starknetCoreModule = new StarknetCoreModule(account, domainId);
-        deployedAddresses = await starknetCoreModule.deploy({
+        deployedAddresses = await deployStarknetCore({
           chain,
           config,
+          multiProtocolSigner,
+          multiProvider,
         });
       }
       break;
-
     default:
       throw new Error('Chain protocol is not supported yet!');
   }
@@ -174,4 +142,62 @@ export async function runCoreApply(params: ApplyParams) {
       `Core config on ${chain} is the same as target. No updates needed.`,
     );
   }
+}
+
+async function deployEthereumCore({
+  context,
+  chain,
+  config,
+  apiKeys,
+}: EthereumDeployParams): Promise<ChainAddresses> {
+  const { multiProvider, signer } = context;
+
+  await runDeployPlanStep({ context, chain });
+
+  await runPreflightChecksForChains({
+    context,
+    chains: [chain],
+    minGas: MINIMUM_CORE_DEPLOY_GAS,
+  });
+
+  const userAddress = await signer.getAddress();
+  const initialBalances = await prepareDeploy(context, userAddress, [chain]);
+
+  const contractVerifier = new ContractVerifier(
+    multiProvider,
+    apiKeys,
+    coreBuildArtifact,
+    ExplorerLicenseType.MIT,
+  );
+
+  logBlue('🚀 All systems ready, captain! Beginning deployment...');
+
+  const evmCoreModule = await EvmCoreModule.create({
+    chain,
+    config,
+    multiProvider,
+    contractVerifier,
+  });
+
+  await completeDeploy(context, 'core', initialBalances, userAddress, [chain]);
+
+  return evmCoreModule.serialize();
+}
+
+async function deployStarknetCore({
+  chain,
+  config,
+  multiProtocolSigner,
+  multiProvider,
+}: StarknetDeployParams): Promise<ChainAddresses> {
+  const domainId = multiProvider.getDomainId(chain);
+  const signer = await multiProtocolSigner?.getStarknetSigner(chain);
+
+  assert(signer, `No Starknet signer available for chain ${chain}`);
+
+  const starknetCoreModule = new StarknetCoreModule(signer, domainId);
+  return starknetCoreModule.deploy({
+    chain,
+    config,
+  });
 }

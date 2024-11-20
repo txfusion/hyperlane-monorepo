@@ -12,6 +12,7 @@ import {
   ChainMap,
   ChainMetadata,
   ChainName,
+  MultiProtocolProvider,
   MultiProvider,
 } from '@hyperlane-xyz/sdk';
 import { isHttpsUrl, isNullish, rootLogger } from '@hyperlane-xyz/utils';
@@ -53,6 +54,9 @@ export async function contextMiddleware(argv: Record<string, any>) {
   const context = isDryRun
     ? await getDryRunContext(settings, argv.dryRun)
     : await getContext(settings);
+
+  argv.mpp = new MultiProtocolProvider(context.chainMetadata);
+
   argv.context = context;
 }
 
@@ -83,6 +87,7 @@ export async function signerMiddleware(argv: Record<string, any>) {
     strategyConfig,
     chains,
     multiProvider,
+    argv.mpp,
     key,
   );
 
@@ -90,6 +95,8 @@ export async function signerMiddleware(argv: Record<string, any>) {
    * @notice Attaches signers to MultiProvider and assigns it to argv.multiProvider
    */
   argv.multiProvider = await multiProtocolSigner.attachSignersToMp();
+
+  argv.context.multiProtocolSigner = multiProtocolSigner;
 
   return argv;
 }

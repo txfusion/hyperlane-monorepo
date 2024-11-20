@@ -9,6 +9,8 @@ import type {
   WarpCoreConfig,
 } from '@hyperlane-xyz/sdk';
 
+import { MultiProtocolSignerManager } from './strategies/signer/MultiProtocolSignerManager.js';
+
 export interface ContextSettings {
   registryUri: string;
   registryOverrideUri: string;
@@ -27,6 +29,7 @@ export interface CommandContext {
   key?: string;
   signer?: ethers.Signer;
   warpCoreConfig?: WarpCoreConfig;
+  multiProtocolSigner?: MultiProtocolSignerManager;
 }
 
 export interface WriteCommandContext extends CommandContext {
