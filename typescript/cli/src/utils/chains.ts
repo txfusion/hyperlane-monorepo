@@ -2,7 +2,7 @@ import { Separator, confirm } from '@inquirer/prompts';
 import select from '@inquirer/select';
 import chalk from 'chalk';
 
-import { ChainMap, ChainMetadata } from '@hyperlane-xyz/sdk';
+import { ChainMap, ChainMetadata, ChainName } from '@hyperlane-xyz/sdk';
 import { toTitleCase } from '@hyperlane-xyz/utils';
 
 import { log } from '../logger.js';
@@ -177,8 +177,10 @@ function handleNewChain(chainNames: string[]) {
  * @param config Object to search for chain names
  * @return Array of discovered chain names
  */
-export function extractChainsFromObj(config: Record<string, any>): string[] {
-  const chains: string[] = [];
+export function extractChainsFromObj(
+  config: Record<string, any>,
+): Set<ChainName> {
+  const chains = new Set<ChainName>();
 
   // Recursively search for chain/chainName fields
   function findChainFields(obj: any) {
@@ -190,11 +192,11 @@ export function extractChainsFromObj(config: Record<string, any>): string[] {
     }
 
     if ('chain' in obj) {
-      chains.push(obj.chain);
+      chains.add(obj.chain);
     }
 
     if ('chainName' in obj) {
-      chains.push(obj.chainName);
+      chains.add(obj.chainName);
     }
 
     // Recursively search in all nested values

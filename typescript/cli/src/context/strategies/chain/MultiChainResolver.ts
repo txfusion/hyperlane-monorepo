@@ -75,7 +75,7 @@ export class MultiChainResolver implements ChainResolver {
         symbol: argv.symbol,
       });
       argv.context.warpCoreConfig = warpCoreConfig;
-      const chains = extractChainsFromObj(warpCoreConfig);
+      const chains = Array.from(extractChainsFromObj(warpCoreConfig));
       return chains;
     } else if (argv.chain) {
       return [argv.chain];
@@ -135,7 +135,7 @@ export class MultiChainResolver implements ChainResolver {
     argv: Record<string, any>,
   ): Promise<ChainName[]> {
     const strategy = await readChainSubmissionStrategyConfig(argv.strategy);
-    return extractChainsFromObj(strategy);
+    return Array.from(extractChainsFromObj(strategy));
   }
 
   private async resolveRelayerChains(
