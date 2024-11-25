@@ -14,8 +14,6 @@ import { proxyAdmin, proxyImplementation } from '../proxy.js';
 
 import { ContractVerificationInput } from './types.js';
 
-const { Interface } = await import('@ethersproject/abi');
-
 export function formatFunctionArguments(
   fragment: utils.Fragment,
   args: any[],
@@ -100,7 +98,7 @@ export async function getContractVerificationInputForZKSync({
 }
 
 export function encodeArguments(abi: any, constructorArgs: any[]): string {
-  const contractInterface = new Interface(abi);
+  const contractInterface = new utils.Interface(abi);
   let deployArgumentsEncoded;
   try {
     deployArgumentsEncoded = contractInterface
@@ -142,8 +140,7 @@ export const FamilyVerificationDelay = {
   [ExplorerFamily.Etherscan]: 40000,
 } as const;
 
-/**
- * Retrieves the constructor args using their respective Explorer and/or RPC (eth_getTransactionByHash)
+/** Retrieves the constructor args using their respective Explorer and/or RPC (eth_getTransactionByHash)
  */
 export async function getConstructorArgumentsApi({
   chainName,

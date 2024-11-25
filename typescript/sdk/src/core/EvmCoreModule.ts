@@ -372,7 +372,6 @@ export class EvmCoreModule extends HyperlaneModule<
     // Set Core & extra addresses
     return {
       ...ismFactoryFactories,
-
       proxyAdmin: proxyAdmin.address,
       mailbox: mailbox.address,
       interchainAccountRouter,

@@ -18,13 +18,13 @@ export const isIsmStatic: Record<IsmType, boolean> = {
   [IsmType.MESSAGE_ID_MULTISIG]: true,
   [IsmType.STORAGE_MERKLE_ROOT_MULTISIG]: false,
   [IsmType.STORAGE_MESSAGE_ID_MULTISIG]: false,
-  [IsmType.STORAGE_AGGREGATION]: false,
   [IsmType.TEST_ISM]: false,
   [IsmType.PAUSABLE]: false,
   [IsmType.TRUSTED_RELAYER]: false,
   [IsmType.ARB_L2_TO_L1]: false,
   [IsmType.WEIGHTED_MERKLE_ROOT_MULTISIG]: true,
   [IsmType.WEIGHTED_MESSAGE_ID_MULTISIG]: true,
+  [IsmType.STORAGE_AGGREGATION]: false,
 } as const;
 
 /**
