@@ -10,12 +10,13 @@ import {
 import {
   ProtocolType,
   assert,
+  errorToString,
   isAddress,
   isPrivateKeyEvm,
 } from '@hyperlane-xyz/utils';
 
 import { CommandContext } from '../context/types.js';
-import { errorRed, log, logBlue, logGreen } from '../logger.js';
+import { errorRed, log, logBlue, logGreen, logRed } from '../logger.js';
 import { runSingleChainSelectionStep } from '../utils/chains.js';
 import {
   indentYamlOrJson,
@@ -25,48 +26,44 @@ import {
 } from '../utils/files.js';
 import { maskSensitiveData } from '../utils/output.js';
 
+/**
+ * Reads and validates a chain submission strategy configuration from a file
+ */
 export async function readChainSubmissionStrategyConfig(
   filePath: string,
 ): Promise<ChainSubmissionStrategy> {
+  log(`Reading submission strategy in ${filePath}`);
   try {
-    log(`Reading file configs in ${filePath}`);
+    const strategyConfig = readYamlOrJson<ChainSubmissionStrategy>(filePath);
 
-    if (!isFile(filePath.trim())) {
-      logBlue(
-        `No strategy config found in ${filePath}, returning empty config`,
-      );
-      return {};
-    }
+    const parseResult = ChainSubmissionStrategySchema.parse(strategyConfig);
 
-    const strategyConfig = readYamlOrJson<ChainSubmissionStrategy>(
-      filePath.trim(),
-    );
-
-    // Check if config exists and is a non-empty object
-    if (!strategyConfig || typeof strategyConfig !== 'object') {
-      logBlue(
-        `No strategy config found in ${filePath}, returning empty config`,
-      );
-      return {};
-    }
-
-    const parseResult = ChainSubmissionStrategySchema.safeParse(strategyConfig);
-    if (!parseResult.success) {
-      errorRed(
-        `Strategy config validation using ChainSubmissionStrategySchema failed for ${filePath}`,
-      );
-      errorRed(JSON.stringify(parseResult.error.errors, null, 2));
-      throw new Error('Invalid strategy configuration');
-    }
-
-    return strategyConfig;
+    return parseResult;
   } catch (error) {
-    if (error instanceof Error) {
-      errorRed(`Error reading strategy config: ${error.message}`);
-    } else {
-      errorRed('Unknown error reading strategy config');
-    }
+    logRed(`⛔️ Error reading strategy config:`, errorToString(error));
     throw error; // Re-throw to let caller handle the error
+  }
+}
+
+/**
+ * Safely reads chain submission strategy config, returns empty object if any errors occur
+ */
+export async function safeReadChainSubmissionStrategyConfig(
+  filePath: string,
+): Promise<ChainSubmissionStrategy> {
+  try {
+    const trimmedFilePath = filePath.trim();
+    if (!isFile(trimmedFilePath)) {
+      logBlue(`File ${trimmedFilePath} does not exist, returning empty config`);
+      return {};
+    }
+    return await readChainSubmissionStrategyConfig(trimmedFilePath);
+  } catch (error) {
+    logRed(
+      `Failed to read strategy config, defaulting to empty config:`,
+      errorToString(error),
+    );
+    return {};
   }
 }
 
@@ -79,16 +76,14 @@ export async function createStrategyConfig({
 }) {
   let strategy: ChainSubmissionStrategy;
   try {
-    // the output strategy might contain submitters for other chain we don't want to overwrite
     const strategyObj = await readYamlOrJson(outPath);
-    // if there are changes in ChainSubmissionStrategy, the existing strategy may no longer be compatible
     strategy = ChainSubmissionStrategySchema.parse(strategyObj);
   } catch (e) {
     strategy = writeYamlOrJson(outPath, {}, 'yaml');
   }
+
   const chain = await runSingleChainSelectionStep(context.chainMetadata);
   const chainProtocol = context.chainMetadata[chain].protocol;
-  assert(chainProtocol === ProtocolType.Ethereum, 'Incompatible protocol'); // Needs to be compatible with MultiProvider - ethers.Signer
 
   if (
     !context.skipConfirmation &&
@@ -100,34 +95,34 @@ export async function createStrategyConfig({
       default: false,
     });
 
-    if (!isConfirmed) {
-      throw Error('Strategy init cancelled');
-    }
+    assert(isConfirmed, 'Strategy initialization cancelled by user.');
   }
 
-  const submitterType = await select({
-    message: 'Enter the type of submitter',
-    choices: Object.values(TxSubmitterType).map((value) => ({
-      name: value,
-      value: value,
-    })),
-  });
+  const isEthereum = chainProtocol === ProtocolType.Ethereum;
+  const submitterType = isEthereum
+    ? await select({
+        message: 'Select the submitter type',
+        choices: Object.values(TxSubmitterType).map((value) => ({
+          name: value,
+          value: value,
+        })),
+      })
+    : TxSubmitterType.JSON_RPC; // Do other non-evm chains support gnosis and account impersonation?
 
-  const submitter: Record<string, any> = {
-    type: submitterType,
-  };
+  const submitter: Record<string, any> = { type: submitterType };
 
-  // Configure submitter based on submitterType
   switch (submitterType) {
     case TxSubmitterType.JSON_RPC:
       submitter.privateKey = await password({
-        message: 'Enter your private key',
-        validate: (pk) => isPrivateKeyEvm(pk),
+        message: 'Enter the private key for JSON-RPC submission:',
+        validate: (pk) => (isEthereum ? isPrivateKeyEvm(pk) : true),
       });
 
-      submitter.userAddress = await new Wallet(
-        submitter.privateKey,
-      ).getAddress(); // EVM
+      submitter.userAddress = isEthereum
+        ? await new Wallet(submitter.privateKey).getAddress()
+        : await input({
+            message: 'Enter the user address for JSON-RPC submission:',
+          });
 
       submitter.chain = chain;
       break;
@@ -135,13 +130,8 @@ export async function createStrategyConfig({
     case TxSubmitterType.IMPERSONATED_ACCOUNT:
       submitter.userAddress = await input({
         message: 'Enter the user address to impersonate',
-        validate: (address) => {
-          try {
-            return isAddress(address) ? true : 'Invalid Ethereum address';
-          } catch {
-            return 'Invalid Ethereum address';
-          }
-        },
+        validate: (address) =>
+          isAddress(address) ? true : 'Invalid Ethereum address',
       });
       assert(
         submitter.userAddress,
@@ -153,13 +143,8 @@ export async function createStrategyConfig({
     case TxSubmitterType.GNOSIS_TX_BUILDER:
       submitter.safeAddress = await input({
         message: 'Enter the Safe address',
-        validate: (address) => {
-          try {
-            return isAddress(address) ? true : 'Invalid Safe address';
-          } catch {
-            return 'Invalid Safe address';
-          }
-        },
+        validate: (address) =>
+          isAddress(address) ? true : 'Invalid Safe address',
       });
 
       submitter.chain = chain;
@@ -185,18 +170,17 @@ export async function createStrategyConfig({
 
   try {
     const strategyConfig = ChainSubmissionStrategySchema.parse(strategyResult);
-    logBlue(`Strategy config is valid, writing to file ${outPath}:\n`);
+    logBlue(`Strategy configuration is valid. Writing to file ${outPath}:\n`);
 
-    // Mask sensitive data before logging
     const maskedConfig = maskSensitiveData(strategyConfig);
     log(indentYamlOrJson(yamlStringify(maskedConfig, null, 2), 4));
 
-    // Write the original unmasked config to file
     writeYamlOrJson(outPath, strategyConfig);
-    logGreen('✅ Successfully created new key config.');
+    logGreen('✅ Successfully created a new strategy configuration.');
   } catch (e) {
+    // don't log error since it may contain sensitive data
     errorRed(
-      `Key config is invalid, please check the submitter configuration.`,
+      `The strategy configuration is invalid. Please review the submitter settings.`,
     );
   }
 }
