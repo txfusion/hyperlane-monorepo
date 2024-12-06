@@ -1,5 +1,31 @@
 # @hyperlane-xyz/cli
 
+## 7.3.0
+
+### Minor Changes
+
+- aa1ea9a4: updates the warp deployment config schema to be closer to the ica routing schema
+- 323f0f15: Add ICAs management in core apply command
+
+### Patch Changes
+
+- 455a897f: Fix a bug where it would try to relay the incorrect message from a transaction that dispatches multiple messages.
+- Updated dependencies [2054f4f5]
+- Updated dependencies [a96448fa]
+- Updated dependencies [170a0fc7]
+- Updated dependencies [9a09afcc]
+- Updated dependencies [24784af9]
+- Updated dependencies [3e8dd70a]
+- Updated dependencies [aa1ea9a4]
+- Updated dependencies [665a7b8d]
+- Updated dependencies [f0b98fde]
+- Updated dependencies [ff9e8a72]
+- Updated dependencies [97c1f80b]
+- Updated dependencies [323f0f15]
+- Updated dependencies [61157097]
+  - @hyperlane-xyz/sdk@7.3.0
+  - @hyperlane-xyz/utils@7.3.0
+
 ## 7.2.0
 
 ### Minor Changes

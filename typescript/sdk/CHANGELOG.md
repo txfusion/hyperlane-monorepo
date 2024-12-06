@@ -1,5 +1,28 @@
 # @hyperlane-xyz/sdk
 
+## 7.3.0
+
+### Minor Changes
+
+- 2054f4f5: Require Sealevel native transfers to cover the rent of the recipient
+- a96448fa: Add logic into SDK to enable warp route unenrollment
+- 170a0fc7: Add `createHookUpdateTxs()` to `WarpModule.update()` such that it 1) deploys a hook for a warp route _without_ an existing hook, or 2) update an existing hook.
+- 9a09afcc: Deploy to appchain, treasure, zklink.
+- 24784af9: Introduce GcpValidator for retrieving announcements, checkpoints and metadata for a Validator posting to a GCP bucket. Uses GcpStorageWrapper for bucket operations.
+- 3e8dd70a: Update validators for boba, duckchain, unichain, vana, bsquared, superseed. Update oort's own validator. Update blockpi's viction validator. Adad luganodes/dsrv to flame validator set.
+- aa1ea9a4: updates the warp deployment config schema to be closer to the ica routing schema
+- f0b98fde: Updated the derivation logic to enable ICA ISM metdata building from on chain data to enable self relaying of ICA messages
+- ff9e8a72: Added a getter to derive ATA payer accounts on Sealevel warp routes
+- 97c1f80b: Implement Sealevel IGP quoting
+- 323f0f15: Add ICAs management in core apply command
+- 61157097: Deploy to swell & lumiaprism. Parallelise router enrollment in HyperlaneRouterDeployer.
+
+### Patch Changes
+
+- 665a7b8d: Added decimal consistency checks to the Token checker
+  - @hyperlane-xyz/utils@7.3.0
+  - @hyperlane-xyz/core@5.8.3
+
 ## 7.2.0
 
 ### Minor Changes
