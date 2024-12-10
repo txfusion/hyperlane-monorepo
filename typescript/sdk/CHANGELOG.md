@@ -1,5 +1,18 @@
 # @hyperlane-xyz/sdk
 
+## 8.0.0
+
+### Major Changes
+
+- 26fbec8f: Rename TokenConfig related types and utilities for clarity. E.g. `CollateralConfig` to `CollateralTokenConfig`.
+  Export more config types and zod schemas
+
+### Patch Changes
+
+- 472b3467: Bump registry version to v6.3.0.
+  - @hyperlane-xyz/utils@8.0.0
+  - @hyperlane-xyz/core@5.8.4
+
 ## 7.3.0
 
 ### Minor Changes
