@@ -1,5 +1,24 @@
 # @hyperlane-xyz/infra
 
+## 8.0.0
+
+### Minor Changes
+
+- fd20bb1e: Add FeeHook and Swell to pz and ez eth config generator. Bump up Registry 6.6.0
+
+### Patch Changes
+
+- Updated dependencies [472b3467]
+- Updated dependencies [79f8197f]
+- Updated dependencies [fd20bb1e]
+- Updated dependencies [26fbec8f]
+- Updated dependencies [82cebabe]
+- Updated dependencies [95cc9571]
+- Updated dependencies [5942e9cf]
+  - @hyperlane-xyz/helloworld@8.0.0
+  - @hyperlane-xyz/sdk@8.0.0
+  - @hyperlane-xyz/utils@8.0.0
+
 ## 7.3.0
 
 ### Minor Changes

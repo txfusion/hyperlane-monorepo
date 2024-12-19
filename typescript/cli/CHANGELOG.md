@@ -1,5 +1,31 @@
 # @hyperlane-xyz/cli
 
+## 8.0.0
+
+### Minor Changes
+
+- fd20bb1e: Add FeeHook and Swell to pz and ez eth config generator. Bump up Registry 6.6.0
+- bb44f9b5: Add support for deploying Hooks using a HookConfig within a WarpConfig
+- c2ca8490: fix signer strategy init for broken cli commands
+- 79f8197f: Added strategy management CLI commands and MultiProtocolSigner implementation for flexible cross-chain signer configuration and management
+
+### Patch Changes
+
+- 472b3467: Bump registry version to v6.3.0.
+- 0c837244: fix: balance check skip confirmation
+- 657ac925: Suppress help on CLI failures
+- 9349ef73: Fix strategy flag propagation
+- 98ee79c1: Added ZKSync signer support using zksync-ethers package
+- Updated dependencies [472b3467]
+- Updated dependencies [79f8197f]
+- Updated dependencies [fd20bb1e]
+- Updated dependencies [26fbec8f]
+- Updated dependencies [82cebabe]
+- Updated dependencies [95cc9571]
+- Updated dependencies [5942e9cf]
+  - @hyperlane-xyz/sdk@8.0.0
+  - @hyperlane-xyz/utils@8.0.0
+
 ## 7.3.0
 
 ### Minor Changes
