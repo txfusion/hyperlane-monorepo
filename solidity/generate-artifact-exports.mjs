@@ -15,8 +15,6 @@ const ARTIFACTS_OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'artifacts');
  */
 const TEMPLATES = {
   JS_ARTIFACT: `\
-import { ZKSyncArtifact } from '../types.js';
-
 export const {name} = {artifact};
 `,
 
@@ -27,8 +25,6 @@ export declare const {name}: ZKSyncArtifact;
 `,
 
   JS_INDEX: `\
-import { ZKSyncArtifact } from './types.js';
-
 {imports}
 
 export const zkSyncContractArtifacts = [
@@ -38,8 +34,6 @@ export const zkSyncContractArtifacts = [
 
   DTS_INDEX: `\
 import type { ZKSyncArtifact } from './types.js';
-
-{imports}
 
 export declare const zkSyncContractArtifacts: readonly ZKSyncArtifact[];
 `,
