@@ -7,27 +7,41 @@ const cwd = process.cwd();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const ROOT_OUTPUT_DIR = join(__dirname, 'core-utils/zksync/');
+const ROOT_OUTPUT_DIR = join(__dirname, 'dist/zksync/');
 const ARTIFACTS_OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'artifacts');
 
 /**
  * @notice Templates for TypeScript artifact generation
  */
 const TEMPLATES = {
-  ARTIFACT: `\
-import type { ZKSyncArtifact } from '../types.js';
+  JS_ARTIFACT: `\
+import { ZKSyncArtifact } from '../types.js';
 
-export const {name}: ZKSyncArtifact = {artifact} as const;
+export const {name} = {artifact};
 `,
 
-  ARTIFACT_INDEX: `\
+  DTS_ARTIFACT: `\
+import type { ZKSyncArtifact } from '../types.js';
+
+export declare const {name}: ZKSyncArtifact;
+`,
+
+  JS_INDEX: `\
+import { ZKSyncArtifact } from './types.js';
+
+{imports}
+
+export const zkSyncContractArtifacts = [
+{exports}
+];
+`,
+
+  DTS_INDEX: `\
 import type { ZKSyncArtifact } from './types.js';
 
 {imports}
 
-export const zkSyncContractArtifacts : ZKSyncArtifact[] = [
-{exports}
-] as const;
+export declare const zkSyncContractArtifacts: readonly ZKSyncArtifact[];
 `,
 };
 
@@ -66,40 +80,46 @@ class ArtifactGenerator {
   }
 
   /**
-   * @notice Generates TypeScript content for a contract artifact
-   * @param name Name of the artifact (contract name)
-   * @param artifact The artifact object (typeof ZKSyncArtifact)
-   * @return {string} Generated TypeScript content
+   * @notice Generates JavaScript content for a contract artifact
    */
-  generateTypeScriptContent(name, artifact) {
-    return TEMPLATES.ARTIFACT.replace('{name}', name).replace(
+  generateJavaScriptContent(name, artifact) {
+    return TEMPLATES.JS_ARTIFACT.replace('{name}', name).replace(
       '{artifact}',
       JSON.stringify(artifact, null, 2),
     );
   }
 
   /**
-   * @notice Generates index file content with imports and exports
-   * @param artifactNames Array of processed artifact names
-   * @return {string} Generated index file content
+   * @notice Generates TypeScript declaration content for a contract artifact
    */
-  generateIndexContent(artifactNames) {
+  generateDeclarationContent(name) {
+    return TEMPLATES.DTS_ARTIFACT.replace('{name}', name);
+  }
+
+  /**
+   * @notice Generates index file contents
+   */
+  generateIndexContents(artifactNames) {
     const imports = artifactNames
       .map((name) => `import { ${name} } from './artifacts/${name}.js';`)
       .join('\n');
-
     const exports = artifactNames.map((name) => `  ${name},`).join('\n');
 
-    return TEMPLATES.ARTIFACT_INDEX.replace('{imports}', imports).replace(
+    const jsContent = TEMPLATES.JS_INDEX.replace('{imports}', imports).replace(
       '{exports}',
       exports,
     );
+
+    const dtsContent = TEMPLATES.DTS_INDEX.replace(
+      '{imports}',
+      imports,
+    ).replace('{exports}', exports);
+
+    return { jsContent, dtsContent };
   }
 
   /**
    * @notice Processes a single artifact file
-   * @dev Skips already processed files to avoid duplicates
-   * @param filePath Path to the artifact file
    */
   async processArtifact(filePath) {
     const name = basename(filePath, '.json');
@@ -109,15 +129,24 @@ class ArtifactGenerator {
     }
 
     const artifact = await this.readArtifactFile(filePath);
-    const tsContent = this.generateTypeScriptContent(name, artifact);
-    await fs.writeFile(join(ARTIFACTS_OUTPUT_DIR, `${name}.ts`), tsContent);
+
+    // Generate and write .js file
+    const jsContent = this.generateJavaScriptContent(name, artifact);
+    await fs.writeFile(
+      join(ROOT_OUTPUT_DIR, 'artifacts', `${name}.js`),
+      jsContent,
+    );
+
+    // Generate and write .d.ts file
+    const dtsContent = this.generateDeclarationContent(name);
+    await fs.writeFile(
+      join(ROOT_OUTPUT_DIR, 'artifacts', `${name}.d.ts`),
+      dtsContent,
+    );
 
     this.processedFiles.add(name);
   }
 
-  /**
-   * @dev Processes all artifacts and generates index file
-   */
   async generate() {
     try {
       await this.createOutputDirectory();
@@ -130,9 +159,12 @@ class ArtifactGenerator {
 
       const processedNames = Array.from(this.processedFiles);
 
-      // Generate and write artifacts index file
-      const indexContent = this.generateIndexContent(processedNames);
-      await fs.writeFile(join(ROOT_OUTPUT_DIR, 'artifacts.ts'), indexContent);
+      // Generate and write index files
+      const { jsContent, dtsContent } =
+        this.generateIndexContents(processedNames);
+
+      await fs.writeFile(join(ROOT_OUTPUT_DIR, 'artifacts.js'), jsContent);
+      await fs.writeFile(join(ROOT_OUTPUT_DIR, 'artifacts.d.ts'), dtsContent);
 
       console.log(
         `Successfully processed ${processedNames.length} zksync artifacts`,
