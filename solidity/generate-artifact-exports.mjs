@@ -25,7 +25,7 @@ import type { ZKSyncArtifact } from './types.js';
 
 {imports}
 
-export const ZKSyncArtifacts : ZKSyncArtifact[] = [
+export const zkSyncContractArtifacts : ZKSyncArtifact[] = [
 {exports}
 ] as const;
 `,
@@ -135,10 +135,10 @@ class ArtifactGenerator {
       await fs.writeFile(join(ROOT_OUTPUT_DIR, 'artifacts.ts'), indexContent);
 
       console.log(
-        `✅ Successfully processed ${processedNames.length} zksync artifacts`,
+        `Successfully processed ${processedNames.length} zksync artifacts`,
       );
     } catch (error) {
-      console.error('❌ Error processing zksync artifacts:', error);
+      console.error('Error processing zksync artifacts:', error);
       throw error;
     }
   }
