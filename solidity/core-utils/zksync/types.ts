@@ -1,4 +1,4 @@
-export interface ZKSyncContractArtifact {
+export interface ZKSyncArtifact {
   _format: string;
   contractName: string;
   sourceName: string;

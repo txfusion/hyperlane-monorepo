@@ -1,5 +1,5 @@
-import type { ZKSyncContractArtifact } from './types.js';
+import type { ZKSyncArtifact } from './types.js';
 
 // Default empty artifact array when `yarn build:zk` hasn't been run
 // This file will be populated with contract artifacts after running the build:zk command
-export const zkSyncContractArtifacts: ZKSyncContractArtifact[] = [] as const;
+export const zkSyncContractArtifacts: ZKSyncArtifact[] = [] as const;

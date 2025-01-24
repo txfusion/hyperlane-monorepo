@@ -15,17 +15,17 @@ const ARTIFACTS_OUTPUT_DIR = join(ROOT_OUTPUT_DIR, 'artifacts');
  */
 const TEMPLATES = {
   ARTIFACT: `\
-import type { ZKSyncContractArtifact } from '../types.js';
+import type { ZKSyncArtifact } from '../types.js';
 
-export const {name}: ZKSyncContractArtifact = {artifact} as const;
+export const {name}: ZKSyncArtifact = {artifact} as const;
 `,
 
   ARTIFACT_INDEX: `\
-import type { ZKSyncContractArtifact } from './types.js';
+import type { ZKSyncArtifact } from './types.js';
 
 {imports}
 
-export const zkSyncContractArtifacts : ZKSyncContractArtifact[] = [
+export const ZKSyncArtifacts : ZKSyncArtifact[] = [
 {exports}
 ] as const;
 `,
@@ -68,7 +68,7 @@ class ArtifactGenerator {
   /**
    * @notice Generates TypeScript content for a contract artifact
    * @param name Name of the artifact (contract name)
-   * @param artifact The artifact object (typeof ZKSyncContractArtifact)
+   * @param artifact The artifact object (typeof ZKSyncArtifact)
    * @return {string} Generated TypeScript content
    */
   generateTypeScriptContent(name, artifact) {

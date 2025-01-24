@@ -1,7 +1,7 @@
 import { zkSyncContractArtifacts } from './artifacts.js';
-import { ZKSyncContractArtifact } from './types.js';
+import { ZKSyncArtifact } from './types.js';
 
-type ArtifactMap = Record<string, ZKSyncContractArtifact>;
+type ArtifactMap = Record<string, ZKSyncArtifact>;
 
 /**
  * @dev Exports the list of artifact names.
@@ -29,7 +29,7 @@ export async function artifactExists(name: string): Promise<boolean> {
  */
 export async function loadZKSyncArtifact(
   name: string,
-): Promise<ZKSyncContractArtifact | undefined> {
+): Promise<ZKSyncArtifact | undefined> {
   return zkSyncContractArtifacts.find(
     (artifact) => artifact.contractName === name,
   );
@@ -53,6 +53,6 @@ export async function loadAllZKSyncArtifacts(): Promise<ArtifactMap> {
  */
 export async function getZKSyncArtifactByName(
   name: string,
-): Promise<ZKSyncContractArtifact | undefined> {
+): Promise<ZKSyncArtifact | undefined> {
   return loadZKSyncArtifact(name);
 }
