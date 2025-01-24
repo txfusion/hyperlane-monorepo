@@ -68,7 +68,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "build": "yarn version:update && yarn hardhat-esm compile && tsc && ./exportBuildArtifact.sh",
-    "build:zk": "yarn hardhat-zk compile && ts-node generate-artifact-exports.mjs && ZKSYNC=true ./exportBuildArtifact.sh && yarn copy-artifacts",
+    "build:zk": "yarn hardhat-zk compile && ts-node generate-artifact-exports.mjs && ZKSYNC=true ./exportBuildArtifact.sh && tsc",
     "prepublishOnly": "yarn build && yarn build:zk",
     "lint": "solhint contracts/**/*.sol",
     "clean": "yarn hardhat-esm clean && yarn hardhat-zk clean && rm -rf ./dist ./cache ./cache-zk ./types ./coverage ./out ./forge-cache ./fixtures",
@@ -88,8 +88,7 @@
     "storage": "./storage.sh",
     "version:update": "sh ./bytecodeversion.sh",
     "version:changed": "yarn version:update && git diff --exit-code",
-    "version:exhaustive": "yarn tsx ./test/exhaustiveversion.test.ts",
-    "copy-artifacts": "mkdir -p dist/zksync/artifacts && cp core-utils/zksync/artifacts/*.json dist/zksync/artifacts/"
+    "version:exhaustive": "yarn tsx ./test/exhaustiveversion.test.ts"
   },
   "peerDependencies": {
     "@ethersproject/abi": "*",
