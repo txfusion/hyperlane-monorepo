@@ -1,5 +1,13 @@
 # @hyperlane-xyz/sdk
 
+## 8.4.1
+
+### Patch Changes
+
+- Updated dependencies [044665692]
+  - @hyperlane-xyz/core@5.11.1
+  - @hyperlane-xyz/utils@8.4.1
+
 ## 8.4.0
 
 ### Minor Changes
