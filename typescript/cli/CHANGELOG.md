@@ -1,5 +1,12 @@
 # @hyperlane-xyz/cli
 
+## 8.4.1
+
+### Patch Changes
+
+- @hyperlane-xyz/sdk@8.4.1
+- @hyperlane-xyz/utils@8.4.1
+
 ## 8.4.0
 
 ### Patch Changes
