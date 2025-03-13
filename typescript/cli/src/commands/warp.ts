@@ -140,7 +140,7 @@ export const deploy: CommandModuleWithWriteContext<{
     'dry-run': dryRunCommandOption,
     'from-address': fromAddressCommandOption,
   },
-  handler: async ({ context, config, dryRun }) => {
+  handler: async ({ context, config, dryRun, multiProtocolSigner }) => {
     logCommandHeader(
       `Hyperlane Warp Route Deployment${dryRun ? ' Dry-Run' : ''}`,
     );
@@ -149,6 +149,7 @@ export const deploy: CommandModuleWithWriteContext<{
       await runWarpRouteDeploy({
         context,
         warpRouteDeploymentConfigPath: config,
+        multiProtocolSigner,
       });
     } catch (error: any) {
       evaluateIfDryRunFailure(error, dryRun);
