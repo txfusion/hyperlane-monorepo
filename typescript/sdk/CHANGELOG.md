@@ -1,5 +1,20 @@
 # @hyperlane-xyz/sdk
 
+## 8.10.0
+
+### Minor Changes
+
+- 0d8624d99: Make mailbox optional on warp deploy config
+
+### Patch Changes
+
+- 88970a78c: Deploy new scaled warp route bytecode
+- Updated dependencies [88970a78c]
+- Updated dependencies [88970a78c]
+- Updated dependencies [88970a78c]
+  - @hyperlane-xyz/core@6.0.0
+  - @hyperlane-xyz/utils@8.10.0
+
 ## 8.9.0
 
 ### Minor Changes
