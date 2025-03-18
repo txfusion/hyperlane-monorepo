@@ -57,6 +57,9 @@ export const HookTypeToContractNameMap: Record<
   [HookType.FALLBACK_ROUTING]: 'fallbackDomainRoutingHook',
   [HookType.PAUSABLE]: 'pausableHook',
   [HookType.ARB_L2_TO_L1]: 'arbL2ToL1Hook',
+  [HookType.AMOUNT_ROUTING]: 'amountRoutingHook',
+  [HookType.MAILBOX_DEFAULT]: 'defaultHook',
+  [HookType.CCIP]: 'ccipHook',
 };
 
 export type MerkleTreeHookConfig = z.infer<typeof MerkleTreeSchema>;
