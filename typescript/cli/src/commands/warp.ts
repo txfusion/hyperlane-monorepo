@@ -140,7 +140,7 @@ export const deploy: CommandModuleWithWriteContext<{
     'dry-run': dryRunCommandOption,
     'from-address': fromAddressCommandOption,
   },
-  handler: async ({ context, config, dryRun }) => {
+  handler: async ({ context, config, dryRun, multiProtocolSigner }) => {
     logCommandHeader(
       `Hyperlane Warp Route Deployment${dryRun ? ' Dry-Run' : ''}`,
     );
