@@ -222,6 +222,7 @@ export {
   moduleCanCertainlyVerify,
   isStaticDeploymentSupported,
   isIsmCompatible,
+  isStaticIsm,
 } from './ism/utils.js';
 export {
   AgentChainMetadata,
