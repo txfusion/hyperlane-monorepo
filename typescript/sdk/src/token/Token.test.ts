@@ -215,6 +215,7 @@ const STANDARD_TO_TOKEN: Record<TokenStandard, TokenArgs | null> = {
     symbol: 'TIA.n',
     name: 'TIA.n',
   },
+
   [TokenStandard.CwHypSynthetic]: null,
 
   //TODO: check this and manage it.
