@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import { globby } from 'globby';
 import { basename, dirname, join } from 'path';
+import { CompiledContract } from 'starknet';
 import { fileURLToPath } from 'url';
 
 import { CONFIG } from '../src/config.js';
@@ -113,14 +114,14 @@ class StarknetArtifactGenerator {
    */
   async getArtifactPaths() {
     const sierraPattern = `${RELEASE_DIR}/**/*${CONFIG.CONTRACT_FILE_SUFFIXES.SIERRA_JSON}`;
-    const casmPattern = `${RELEASE_DIR}/**/*${CONFIG.CONTRACT_FILE_SUFFIXES.ASSEMBLY_JSON}`;
+    // const casmPattern = `${RELEASE_DIR}/**/*${CONFIG.CONTRACT_FILE_SUFFIXES.ASSEMBLY_JSON}`;
 
-    const [sierraFiles, casmFiles] = await Promise.all([
+    const [sierraFiles] = await Promise.all([
       globby(sierraPattern),
-      globby(casmPattern),
+      // globby(casmPattern),
     ]);
 
-    return { sierraFiles, casmFiles };
+    return { sierraFiles };
   }
 
   /**
@@ -141,7 +142,30 @@ class StarknetArtifactGenerator {
   /**
    * @notice Generates JavaScript content for a contract artifact
    */
-  generateJavaScriptContent(name: string, artifact: any) {
+  generateJavaScriptContent(
+    name: string,
+    artifact: any,
+    contractClass: ContractClass,
+  ) {
+    // For Sierra contracts, extract the ABI if the file contains contract_class in its name
+    if (contractClass === ContractClass.SIERRA) {
+      // Create a copy of the contract with the abi parsed
+      const abiOnly: CompiledContract = {
+        sierra_program: [],
+        contract_class_version: artifact.contract_class_version,
+        entry_points_by_type: artifact.entry_points_by_type,
+        abi:
+          typeof artifact.abi === 'string'
+            ? JSON.parse(artifact.abi)
+            : artifact.abi,
+      };
+
+      return TEMPLATES.JS_ARTIFACT.replace('{name}', name).replace(
+        '{artifact}',
+        JSON.stringify(abiOnly),
+      );
+    }
+    // For other contract types, return the full artifact
     return TEMPLATES.JS_ARTIFACT.replace('{name}', name).replace(
       '{artifact}',
       JSON.stringify(artifact),
@@ -178,7 +202,7 @@ class StarknetArtifactGenerator {
         // Add prefix to avoid naming conflicts
         const sierraVarName = `${value.type}${baseName}Sierra`;
         imports.push(
-          `import { ${name} as ${sierraVarName} } from './${name}.${ContractClass.SIERRA}.json.js';`,
+          `import { ${name} as ${sierraVarName} } from './${name}.${ContractClass.SIERRA}.js';`,
         );
 
         const exportLine = `    ${baseName}: { contract_class: ${sierraVarName}`;
@@ -190,7 +214,7 @@ class StarknetArtifactGenerator {
         // Add prefix to avoid naming conflicts
         const casmVarName = `${value.type}${baseName}Casm`;
         imports.push(
-          `import { ${name} as ${casmVarName} } from './${name}.${ContractClass.CASM}.json.js';`,
+          `import { ${name} as ${casmVarName} } from './${name}.${ContractClass.CASM}.js';`,
         );
 
         const exportLine = value.sierra
@@ -250,13 +274,17 @@ class StarknetArtifactGenerator {
     this.processedFiles.set(name, fileInfo);
 
     // Generate and write files
-    const jsContent = this.generateJavaScriptContent(name, artifact);
+    const jsContent = this.generateJavaScriptContent(
+      name,
+      artifact,
+      contractClass,
+    );
     const dtsContent = this.generateDeclarationContent(
       name,
       contractClass === ContractClass.SIERRA,
     );
 
-    const outputFileName = `${name}.${contractClass}.json`;
+    const outputFileName = `${name}.${contractClass}`;
     await fs.writeFile(
       join(ROOT_OUTPUT_DIR, outputFileName + '.js'),
       jsContent,
@@ -271,11 +299,12 @@ class StarknetArtifactGenerator {
     try {
       await this.createOutputDirectory();
 
-      const { sierraFiles, casmFiles } = await this.getArtifactPaths();
+      // const { sierraFiles, casmFiles } = await this.getArtifactPaths();
+      const { sierraFiles } = await this.getArtifactPaths();
 
       await Promise.all([
         ...sierraFiles.map((file) => this.processArtifact(file)),
-        ...casmFiles.map((file) => this.processArtifact(file)),
+        // ...casmFiles.map((file) => this.processArtifact(file)),
       ]);
 
       // Generate and write index files
@@ -293,7 +322,5 @@ class StarknetArtifactGenerator {
   }
 }
 
-// Add to package.json scripts:
-// "generate-artifacts": "tsx scripts/generate-artifacts.ts"
 const generator = new StarknetArtifactGenerator();
 generator.generate().catch(console.error);

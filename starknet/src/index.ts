@@ -56,6 +56,7 @@ export function getCompiledContractCasm(
   name: string,
   contractType: ContractType = ContractType.CONTRACT,
 ): CairoAssembly {
+  throw new Error('Not implemented');
   try {
     const group = getContractGroup(contractType);
     const contract = group[name];
