@@ -102,7 +102,6 @@ export {
   DeployerOptions,
   HyperlaneDeployer,
 } from './deploy/HyperlaneDeployer.js';
-export { StarknetDeployer } from './deploy/StarknetDeployer.js';
 export { HyperlaneProxyFactoryDeployer } from './deploy/HyperlaneProxyFactoryDeployer.js';
 export {
   CheckerViolation,
@@ -701,18 +700,6 @@ export { HyperlaneCCIPDeployer } from './ccip/HyperlaneCCIPDeployer.js';
 
 export { MailboxClientConfigSchema as mailboxClientConfigSchema } from './router/types.js';
 
-export { StarknetCoreModule } from './core/StarknetCoreModule.js';
-
-export { StarknetERC20WarpModule } from './token/StarknetERC20WarpModule.js';
-export { StarknetCore } from './core/StarknetCore.js';
-
-export { MessageService } from './messaging/MessageService.js';
-export {
-  formatEthereumMessageForStarknet,
-  formatStarknetMessageForEthereum,
-  convertU128ArrayToBytes,
-} from './messaging/messageUtils.js';
-
 export {
   StarknetContractName,
   StarknetIsmType,
@@ -725,12 +712,3 @@ export {
   getStarknetEtherContract,
   getStarknetIsmContract,
 } from './utils/starknet.js';
-
-export { MessageBus } from './bus/MessageBus.js';
-export { EvmAdapter } from './bus/adapters/EvmAdapter.js';
-export { StarknetAdapter } from './bus/adapters/StarknetAdapter.js';
-export {
-  MessageHandler,
-  MessageWithStatus,
-  MessageBusConfig,
-} from './bus/types.js';

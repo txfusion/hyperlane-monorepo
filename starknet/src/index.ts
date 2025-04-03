@@ -47,34 +47,6 @@ export function getCompiledContract(
 }
 
 /**
- * @notice Retrieves a CASM compiled contract
- * @param name The name of the contract to retrieve
- * @returns {CairoAssembly} The CASM contract data
- * @throws {ContractError} If the contract is not found
- */
-export function getCompiledContractCasm(
-  name: string,
-  contractType: ContractType = ContractType.CONTRACT,
-): CairoAssembly {
-  throw new Error('Not implemented');
-  try {
-    const group = getContractGroup(contractType);
-    const contract = group[name];
-
-    if (!contract?.compiled_contract_class) {
-      throw new Error('Contract not found or missing CASM class');
-    }
-
-    return contract.compiled_contract_class;
-  } catch (_error) {
-    throw new ContractError(CONFIG.CONTRACT_ERROR_CODES.FILE_NOT_FOUND, {
-      name,
-      type: contractType,
-    });
-  }
-}
-
-/**
  * @notice Helper function to get the correct contract group
  */
 function getContractGroup(type: ContractType): StarknetContractGroup {

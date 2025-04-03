@@ -13,6 +13,11 @@ const __dirname = dirname(__filename);
 const ROOT_OUTPUT_DIR = join(__dirname, '../dist/artifacts/');
 const RELEASE_DIR = join(cwd, 'release');
 
+enum ContractClass {
+  SIERRA = 'contract_class',
+  CASM = 'compiled_contract_class',
+}
+
 /**
  * @notice Contract categories based on prefix
  */
@@ -20,14 +25,6 @@ enum ContractType {
   CONTRACT = 'contracts_',
   TOKEN = 'token_',
   MOCK = 'mock_',
-}
-
-/**
- * @notice Contract class types
- */
-enum ContractClass {
-  SIERRA = 'contract_class',
-  CASM = 'compiled_contract_class',
 }
 
 /**
@@ -114,13 +111,7 @@ class StarknetArtifactGenerator {
    */
   async getArtifactPaths() {
     const sierraPattern = `${RELEASE_DIR}/**/*${CONFIG.CONTRACT_FILE_SUFFIXES.SIERRA_JSON}`;
-    // const casmPattern = `${RELEASE_DIR}/**/*${CONFIG.CONTRACT_FILE_SUFFIXES.ASSEMBLY_JSON}`;
-
-    const [sierraFiles] = await Promise.all([
-      globby(sierraPattern),
-      // globby(casmPattern),
-    ]);
-
+    const [sierraFiles] = await Promise.all([globby(sierraPattern)]);
     return { sierraFiles };
   }
 
@@ -149,7 +140,6 @@ class StarknetArtifactGenerator {
   ) {
     // For Sierra contracts, extract the ABI if the file contains contract_class in its name
     if (contractClass === ContractClass.SIERRA) {
-      // Create a copy of the contract with the abi parsed
       const abiOnly: CompiledContract = {
         sierra_program: [],
         contract_class_version: artifact.contract_class_version,
@@ -299,12 +289,10 @@ class StarknetArtifactGenerator {
     try {
       await this.createOutputDirectory();
 
-      // const { sierraFiles, casmFiles } = await this.getArtifactPaths();
       const { sierraFiles } = await this.getArtifactPaths();
 
       await Promise.all([
         ...sierraFiles.map((file) => this.processArtifact(file)),
-        // ...casmFiles.map((file) => this.processArtifact(file)),
       ]);
 
       // Generate and write index files
