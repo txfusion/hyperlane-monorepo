@@ -1,7 +1,6 @@
 import { stringify as yamlStringify } from 'yaml';
 
 import { buildArtifact as coreBuildArtifact } from '@hyperlane-xyz/core/buildArtifact.js';
-import { ChainAddresses } from '@hyperlane-xyz/registry';
 import {
   ChainMap,
   ChainName,
@@ -10,13 +9,10 @@ import {
   DeployedCoreAddresses,
   EvmCoreModule,
   ExplorerLicenseType,
-  StarknetCoreModule,
 } from '@hyperlane-xyz/sdk';
-import { ProtocolType, assert } from '@hyperlane-xyz/utils';
 
 import { MINIMUM_CORE_DEPLOY_GAS } from '../consts.js';
 import { requestAndSaveApiKeys } from '../context/context.js';
-import { MultiProtocolSignerManager } from '../context/strategies/signer/MultiProtocolSignerManager.js';
 import { WriteCommandContext } from '../context/types.js';
 import { log, logBlue, logGray, logGreen } from '../logger.js';
 import { runSingleChainSelectionStep } from '../utils/chains.js';
@@ -33,7 +29,6 @@ interface DeployParams {
   context: WriteCommandContext;
   chain: ChainName;
   config: CoreConfig;
-  multiProtocolSigner?: MultiProtocolSignerManager;
 }
 
 interface ApplyParams extends DeployParams {
@@ -44,8 +39,9 @@ interface ApplyParams extends DeployParams {
  * Executes the core deploy command.
  */
 export async function runCoreDeploy(params: DeployParams) {
-  const { context, config, multiProtocolSigner } = params;
+  const { context, config } = params;
   let chain = params.chain;
+
   const {
     isDryRun,
     chainMetadata,
@@ -53,7 +49,6 @@ export async function runCoreDeploy(params: DeployParams) {
     registry,
     skipConfirmation,
     multiProvider,
-    multiProtocolProvider,
   } = context;
 
   // Select a dry-run chain if it's not supplied
@@ -70,73 +65,42 @@ export async function runCoreDeploy(params: DeployParams) {
   if (!skipConfirmation)
     apiKeys = await requestAndSaveApiKeys([chain], chainMetadata, registry);
 
+  const signer = multiProvider.getSigner(chain);
+
   const deploymentParams: DeployParams = {
-    context: { ...context },
+    context: { ...context, signer },
     chain,
     config,
   };
 
-  let deployedAddresses: ChainAddresses;
-  switch (multiProvider.getProtocol(chain)) {
-    case ProtocolType.Ethereum:
-      {
-        const signer = multiProvider.getSigner(chain);
-        await runDeployPlanStep(deploymentParams);
+  await runDeployPlanStep(deploymentParams);
+  await runPreflightChecksForChains({
+    ...deploymentParams,
+    chains: [chain],
+    minGas: MINIMUM_CORE_DEPLOY_GAS,
+  });
 
-        await runPreflightChecksForChains({
-          ...deploymentParams,
-          chains: [chain],
-          minGas: MINIMUM_CORE_DEPLOY_GAS,
-        });
+  const userAddress = await signer.getAddress();
 
-        const userAddress = await signer.getAddress();
+  const initialBalances = await prepareDeploy(context, userAddress, [chain]);
 
-        const initialBalances = await prepareDeploy(context, userAddress, [
-          chain,
-        ]);
+  const contractVerifier = new ContractVerifier(
+    multiProvider,
+    apiKeys,
+    coreBuildArtifact,
+    ExplorerLicenseType.MIT,
+  );
 
-        const contractVerifier = new ContractVerifier(
-          multiProvider,
-          apiKeys,
-          coreBuildArtifact,
-          ExplorerLicenseType.MIT,
-        );
+  logBlue('🚀 All systems ready, captain! Beginning deployment...');
+  const evmCoreModule = await EvmCoreModule.create({
+    chain,
+    config,
+    multiProvider,
+    contractVerifier,
+  });
 
-        logBlue('🚀 All systems ready, captain! Beginning deployment...');
-        const evmCoreModule = await EvmCoreModule.create({
-          chain,
-          config,
-          multiProvider,
-          contractVerifier,
-        });
-
-        await completeDeploy(context, 'core', initialBalances, userAddress, [
-          chain,
-        ]);
-        deployedAddresses = evmCoreModule.serialize();
-      }
-      break;
-
-    case ProtocolType.Starknet:
-      {
-        const account = multiProtocolSigner!.getStarknetSigner(chain);
-        assert(account, 'Starknet account failed!');
-        const starknetCoreModule = new StarknetCoreModule(
-          account,
-          multiProvider,
-          multiProtocolProvider!,
-          chain,
-        );
-        deployedAddresses = await starknetCoreModule.deploy({
-          chain,
-          config,
-        });
-      }
-      break;
-
-    default:
-      throw new Error('Chain protocol is not supported yet!');
-  }
+  await completeDeploy(context, 'core', initialBalances, userAddress, [chain]);
+  const deployedAddresses = evmCoreModule.serialize();
 
   if (!isDryRun) {
     await registry.updateChain({
