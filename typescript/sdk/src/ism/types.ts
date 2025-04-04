@@ -13,7 +13,12 @@ import {
   TestIsm,
   TrustedRelayerIsm,
 } from '@hyperlane-xyz/core';
-import type { Address, Domain, ValueOf } from '@hyperlane-xyz/utils';
+import type {
+  Address,
+  Domain,
+  ValueOf,
+  WithAddress,
+} from '@hyperlane-xyz/utils';
 
 import { ZHash } from '../metadata/customZodTypes.js';
 import {
@@ -68,6 +73,16 @@ export const MUTABLE_ISM_TYPE = [
   IsmType.ROUTING,
   IsmType.FALLBACK_ROUTING,
   IsmType.PAUSABLE,
+];
+
+// ISM types that require static deployment
+export const STATIC_ISM_TYPES = [
+  IsmType.AGGREGATION,
+  IsmType.MERKLE_ROOT_MULTISIG,
+  IsmType.MESSAGE_ID_MULTISIG,
+  IsmType.WEIGHTED_MERKLE_ROOT_MULTISIG,
+  IsmType.WEIGHTED_MESSAGE_ID_MULTISIG,
+  IsmType.ICA_ROUTING,
 ];
 
 // mapping between the two enums
@@ -169,6 +184,8 @@ export type AggregationIsmConfig = {
 };
 
 export type IsmConfig = z.infer<typeof IsmConfigSchema>;
+
+export type DerivedIsmConfig = WithAddress<Exclude<IsmConfig, Address>>;
 
 export type DeployedIsmType = {
   [IsmType.CUSTOM]: IInterchainSecurityModule;
