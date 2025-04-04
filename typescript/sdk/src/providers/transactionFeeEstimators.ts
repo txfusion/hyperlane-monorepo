@@ -294,6 +294,8 @@ export function estimateTransactionFee({
   }
 }
 
+// Starknet does not support gas estimation without an account
+// TODO: Figure out a way to inject an account
 export async function estimateTransactionFeeStarknet({
   transaction,
   provider,
@@ -303,19 +305,5 @@ export async function estimateTransactionFeeStarknet({
   provider: StarknetJsProvider;
   sender: Address;
 }): Promise<TransactionFeeEstimate> {
-  // const { provider: starknetProvider } = provider;
-  // const nonce = await starknetProvider.getNonceForAddress(sender);
-  // const estimation = await starknetProvider.getInvokeEstimateFee(
-  //   {
-  //     calldata: transaction.transaction.calldata,
-  //     contractAddress: transaction.transaction.contractAddress,
-  //     entrypoint: transaction.transaction.entrypoint,
-  //     signature: [],
-  //   },
-  //   { nonce },
-  //   'latest',
-  //   true,
-  // );
-  // console.log({ estimation });
   return { gasUnits: 0, gasPrice: 0, fee: 0 };
 }

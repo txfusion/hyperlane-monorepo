@@ -231,6 +231,11 @@ export class WarpCore {
 
     // Typically the transfers require a single transaction
     if (txs.length === 1) {
+      if (originToken.protocol === ProtocolType.Starknet) {
+        this.logger.info(`Skipping gas estimation for Starknet`);
+        return { gasUnits: 0, gasPrice: 0, fee: 0 };
+      }
+
       try {
         return this.multiProvider.estimateTransactionFee({
           chainNameOrId: originMetadata.name,

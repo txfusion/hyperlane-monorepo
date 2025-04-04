@@ -7677,7 +7677,6 @@ __metadata:
     latest-version: "npm:^8.0.0"
     mocha: "npm:^10.2.0"
     prettier: "npm:^2.8.8"
-    starknet: "npm:6.23.1"
     terminal-link: "npm:^3.0.0"
     tsx: "npm:^4.19.1"
     typescript: "npm:5.3.3"
@@ -7914,7 +7913,7 @@ __metadata:
     "@cosmjs/stargate": "npm:^0.32.4"
     "@eslint/js": "npm:^9.15.0"
     "@hyperlane-xyz/core": "npm:6.1.0"
-    "@hyperlane-xyz/starknet-core": "npm:0.3.1"
+    "@hyperlane-xyz/starknet-core": "npm:1.0.0"
     "@hyperlane-xyz/utils": "npm:11.0.0"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@nomiclabs/hardhat-waffle": "npm:^2.0.6"
@@ -7952,6 +7951,7 @@ __metadata:
     typescript: "npm:5.3.3"
     viem: "npm:^2.21.45"
     yaml: "npm:2.4.5"
+    zksync-ethers: "npm:^5.10.0"
     zod: "npm:^3.21.2"
   peerDependencies:
     "@ethersproject/abi": "*"
@@ -7959,7 +7959,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hyperlane-xyz/starknet-core@npm:0.3.1, @hyperlane-xyz/starknet-core@workspace:starknet":
+"@hyperlane-xyz/starknet-core@npm:1.0.0, @hyperlane-xyz/starknet-core@workspace:starknet":
   version: 0.0.0-use.local
   resolution: "@hyperlane-xyz/starknet-core@workspace:starknet"
   dependencies:
@@ -7972,8 +7972,8 @@ __metadata:
     eslint-plugin-import: "npm:^2.31.0"
     globby: "npm:^14.1.0"
     prettier: "npm:^2.8.8"
-    starknet: "npm:6.23.1"
-    tsx: "npm:^4.7.1"
+    starknet: "npm:^6.23.1"
+    tsx: "npm:^4.19.1"
     typescript: "npm:5.3.3"
   languageName: unknown
   linkType: soft
@@ -35585,6 +35585,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"starknet@npm:^6.23.1":
+  version: 6.24.1
+  resolution: "starknet@npm:6.24.1"
+  dependencies:
+    "@noble/curves": "npm:1.7.0"
+    "@noble/hashes": "npm:1.6.0"
+    "@scure/base": "npm:1.2.1"
+    "@scure/starknet": "npm:1.1.0"
+    abi-wan-kanabi: "npm:^2.2.3"
+    fetch-cookie: "npm:~3.0.0"
+    isomorphic-fetch: "npm:~3.0.0"
+    lossless-json: "npm:^4.0.1"
+    pako: "npm:^2.0.4"
+    starknet-types-07: "npm:@starknet-io/types-js@^0.7.10"
+    ts-mixer: "npm:^6.0.3"
+  checksum: 10/7feb01cfe9310a6669a7ca2926c525084f8ec137918db87e6087a0e0ca806a3bbaedb7a25da44cf1fddc3d87cf4e05a39e0180166af87a83c156a8f49bf67197
+  languageName: node
+  linkType: hard
+
 "starknetkit@npm:2.6.1":
   version: 2.6.1
   resolution: "starknetkit@npm:2.6.1"
@@ -37119,22 +37138,6 @@ __metadata:
   bin:
     tsx: dist/cli.mjs
   checksum: 10/1f5f0b7c4107fc18f523e94c79204b043641aa328f721324795cc961826879035652a1f19fe29ba420465d9f4bacb0f47e08f0bd4b934684ab45727eca110311
-  languageName: node
-  linkType: hard
-
-"tsx@npm:^4.7.1":
-  version: 4.19.2
-  resolution: "tsx@npm:4.19.2"
-  dependencies:
-    esbuild: "npm:~0.23.0"
-    fsevents: "npm:~2.3.3"
-    get-tsconfig: "npm:^4.7.5"
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  bin:
-    tsx: dist/cli.mjs
-  checksum: 10/4c5610ed1fb2f80d766681f8ac7827e1e8118dfe354c18f74800691f3ef1e9ed676a29842ab818806bcf8613cdc97c6af84b5645e768ddb7f4b0527b9100deda
   languageName: node
   linkType: hard
 

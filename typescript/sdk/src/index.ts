@@ -180,7 +180,7 @@ export {
   ProtocolFeeHookConfig,
   ProtocolFeeSchema,
 } from './hook/types.js';
-export { DerivedIsmConfig, EvmIsmReader } from './ism/EvmIsmReader.js';
+export { EvmIsmReader } from './ism/EvmIsmReader.js';
 export { HyperlaneIsmFactory } from './ism/HyperlaneIsmFactory.js';
 export { BaseMetadataBuilder } from './ism/metadata/builder.js';
 export { decodeIsmMetadata } from './ism/metadata/decode.js';
@@ -196,6 +196,7 @@ export {
   ArbL2ToL1IsmConfigSchema,
   DeployedIsm,
   DeployedIsmType,
+  DerivedIsmConfig,
   DomainRoutingIsmConfig,
   IcaRoutingIsmConfig,
   IsmConfig,
@@ -698,17 +699,11 @@ export {
 } from './ccip/utils.js';
 export { HyperlaneCCIPDeployer } from './ccip/HyperlaneCCIPDeployer.js';
 
-export { MailboxClientConfigSchema as mailboxClientConfigSchema } from './router/types.js';
-
 export {
   StarknetContractName,
-  StarknetIsmType,
-  StarknetHookType,
   getStarknetContract,
   getStarknetHypERC20Contract,
   getStarknetHypERC20CollateralContract,
   getStarknetMailboxContract,
-  getStarknetHypNativeContract,
   getStarknetEtherContract,
-  getStarknetIsmContract,
 } from './utils/starknet.js';

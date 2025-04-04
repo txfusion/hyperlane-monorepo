@@ -1,8 +1,6 @@
 import { utils } from 'ethers';
 import {
   AccountInterface,
-  CairoOption,
-  CairoOptionVariant,
   Contract,
   ParsedEvent,
   ParsedEvents,
@@ -16,8 +14,6 @@ import {
 } from '@hyperlane-xyz/starknet-core';
 
 import { DispatchedMessage } from '../core/types.js';
-import { StarknetIsmContractName } from '../ism/starknet-utils.js';
-import { SupportedIsmTypesOnStarknetType } from '../ism/types.js';
 
 export enum StarknetContractName {
   MAILBOX = 'mailbox',
@@ -34,42 +30,6 @@ export enum StarknetContractName {
   DOMAIN_ROUTING_HOOK = 'domain_routing_hook',
   FALLBACK_DOMAIN_ROUTING_HOOK = 'fallback_domain_routing_hook',
   STATIC_AGGREGATION_HOOK = 'static_aggregation_hook',
-}
-
-export enum StarknetHookType {
-  AGGREGATION = 'AGGREGATION',
-  FALLBACK_ROUTING = 'FALLBACK_ROUTING',
-  MAILBOX_DEFAULT_HOOK = 'MAILBOX_DEFAULT_HOOK',
-  MERKLE_TREE = 'MERKLE_TREE',
-  PROTOCOL_FEE = 'PROTOCOL_FEE',
-  ROUTING = 'ROUTING',
-  UNUSED = 'UNUSED',
-}
-
-export enum StarknetIsmType {
-  AGGREGATION = 'AGGREGATION',
-  CCIP_READ = 'CCIP_READ', // Not supported
-  LEGACY_MULTISIG = 'LEGACY_MULTISIG', // Deprecated
-  MERKLE_ROOT_MULTISIG = 'MERKLE_ROOT_MULTISIG',
-  MESSAGE_ID_MULTISIG = 'MESSAGE_ID_MULTISIG',
-  NULL = 'NULL',
-  ROUTING = 'ROUTING',
-  UNUSED = 'UNUSED',
-}
-
-export interface Message {
-  version: number;
-  nonce: number;
-  origin: number;
-  sender: bigint;
-  destination: number;
-  recipient: bigint;
-  body: { size: bigint; data: bigint[] };
-}
-
-export interface ByteData {
-  value: bigint;
-  size: number;
 }
 
 /**
@@ -120,18 +80,6 @@ export function getStarknetHypERC20CollateralContract(
   );
 }
 
-export function getStarknetHypNativeContract(
-  address: string,
-  providerOrAccount?: ProviderInterface | AccountInterface,
-): Contract {
-  return getStarknetContract(
-    StarknetContractName.HYP_NATIVE,
-    address,
-    providerOrAccount,
-    ContractType.TOKEN,
-  );
-}
-
 export function getStarknetEtherContract(
   address: string,
   providerOrAccount?: ProviderInterface | AccountInterface,
@@ -142,49 +90,6 @@ export function getStarknetEtherContract(
     providerOrAccount,
     ContractType.TOKEN,
   );
-}
-
-export function getStarknetIsmContract(
-  starkIsmType: SupportedIsmTypesOnStarknetType,
-  address: string,
-  providerOrAccount?: ProviderInterface | AccountInterface,
-): Contract {
-  return getStarknetContract(
-    StarknetIsmContractName[starkIsmType],
-    address,
-    providerOrAccount,
-  );
-}
-
-export async function quoteStarknetDispatch({
-  mailboxContract,
-  destinationDomain,
-  recipientAddress,
-  messageBody,
-  customHookMetadata,
-  customHook,
-}: {
-  mailboxContract: Contract;
-  destinationDomain: number;
-  recipientAddress: string;
-  messageBody: {
-    size: number;
-    data: bigint[];
-  };
-  customHookMetadata?: string;
-  customHook?: string;
-}): Promise<string> {
-  const nonOption = new CairoOption(CairoOptionVariant.None);
-
-  const quote = await mailboxContract.call('quote_dispatch', [
-    destinationDomain,
-    recipientAddress,
-    messageBody,
-    customHookMetadata || nonOption,
-    customHook || nonOption,
-  ]);
-
-  return quote.toString();
 }
 
 const DISPATCH_EVENT = 'contracts::mailbox::mailbox::Dispatch';
