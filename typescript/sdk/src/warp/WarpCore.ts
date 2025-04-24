@@ -3,7 +3,6 @@ import { Logger } from 'pino';
 import {
   Address,
   HexString,
-  Numberish,
   ProtocolType,
   assert,
   convertDecimalsToIntegerString,
@@ -187,12 +186,14 @@ export class WarpCore {
     originToken,
     destination,
     sender,
+    recipient,
     senderPubKey,
     interchainFee,
   }: {
     originToken: IToken;
     destination: ChainNameOrId;
     sender: Address;
+    recipient?: Address;
     senderPubKey?: HexString;
     interchainFee?: TokenAmount;
   }): Promise<TransactionFeeEstimate> {
@@ -213,9 +214,10 @@ export class WarpCore {
       return { gasUnits: 0, gasPrice: 0, fee: Number(defaultQuote.amount) };
     }
 
+    // TODO: DOES NOT WORK FOR STARKNET
     // Form transactions to estimate local gas with
-    const recipient = convertToProtocolAddress(
-      sender,
+    const recipientAddress = convertToProtocolAddress(
+      recipient ?? sender, // TODO: get recipient instead of sender
       destinationMetadata.protocol,
       destinationMetadata.bech32Prefix,
     );
@@ -223,7 +225,7 @@ export class WarpCore {
       originTokenAmount: originToken.amount(1),
       destination,
       sender,
-      recipient,
+      recipient: recipientAddress,
       interchainFee,
     });
 
@@ -260,6 +262,12 @@ export class WarpCore {
         provider,
         gasUnits: EVM_TRANSFER_REMOTE_GAS_ESTIMATE,
       });
+    } else if (
+      txs.length === 2 &&
+      originToken.protocol === ProtocolType.Starknet
+    ) {
+      this.logger.info(`Skipping gas estimation for Starknet`);
+      return { gasUnits: 0, gasPrice: 0, fee: 0 };
     } else {
       throw new Error('Cannot estimate local gas for multiple transactions');
     }
@@ -274,12 +282,14 @@ export class WarpCore {
     originToken,
     destination,
     sender,
+    recipient,
     senderPubKey,
     interchainFee,
   }: {
     originToken: IToken;
     destination: ChainNameOrId;
     sender: Address;
+    recipient?: Address;
     senderPubKey?: HexString;
     interchainFee?: TokenAmount;
   }): Promise<TokenAmount> {
@@ -298,6 +308,7 @@ export class WarpCore {
       originToken,
       destination,
       sender,
+      recipient,
       senderPubKey,
       interchainFee,
     });
@@ -333,42 +344,16 @@ export class WarpCore {
     const providerType = TOKEN_STANDARD_TO_PROVIDER_TYPE[token.standard];
     const hypAdapter = token.getHypAdapter(this.multiProvider, destinationName);
 
-    const [isApproveRequired, isRevokeApprovalRequired] = await Promise.all([
-      this.isApproveRequired({
-        originTokenAmount,
-        owner: sender,
-      }),
-      hypAdapter.isRevokeApprovalRequired(
-        sender,
-        originTokenAmount.token.addressOrDenom,
-      ),
-    ]);
-
-    const preTransferRemoteTxs: [Numberish, WarpTxCategory][] = [];
-    // if the approval is required and the current allowance is not 0 we reset
-    // the allowance before setting the right approval as some tokens don't allow
-    // to override an already existing allowance. USDT is one of these tokens
-    // see: https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7#code#L205
-    if (isApproveRequired && isRevokeApprovalRequired) {
-      preTransferRemoteTxs.push([0, WarpTxCategory.Revoke]);
-    }
-
-    if (isApproveRequired) {
-      preTransferRemoteTxs.push([amount.toString(), WarpTxCategory.Approval]);
-    }
-
-    for (const [approveAmount, txCategory] of preTransferRemoteTxs) {
-      this.logger.info(
-        `${txCategory} required for transfer of ${token.symbol}`,
-      );
+    if (await this.isApproveRequired({ originTokenAmount, owner: sender })) {
+      this.logger.info(`Approval required for transfer of ${token.symbol}`);
       const approveTxReq = await hypAdapter.populateApproveTx({
-        weiAmountOrId: approveAmount,
+        weiAmountOrId: amount.toString(),
         recipient: token.addressOrDenom,
       });
-      this.logger.debug(`${txCategory} tx for ${token.symbol} populated`);
+      this.logger.debug(`Approval tx for ${token.symbol} populated`);
 
       const approveTx = {
-        category: txCategory,
+        category: WarpTxCategory.Approval,
         type: providerType,
         transaction: approveTxReq,
       } as WarpTypedTransaction;
@@ -623,6 +608,7 @@ export class WarpCore {
       originTokenAmount,
       destination,
       sender,
+      recipient,
       senderPubKey,
     );
     if (balancesError) return balancesError;
@@ -738,6 +724,7 @@ export class WarpCore {
     originTokenAmount: TokenAmount,
     destination: ChainNameOrId,
     sender: Address,
+    recipient: Address,
     senderPubKey?: HexString,
   ): Promise<Record<string, string> | null> {
     const { token: originToken, amount } = originTokenAmount;
@@ -775,6 +762,7 @@ export class WarpCore {
       originToken,
       destination,
       sender,
+      recipient,
       senderPubKey,
       interchainFee: interchainQuote,
     });

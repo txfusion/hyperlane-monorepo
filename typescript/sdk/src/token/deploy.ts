@@ -1,4 +1,5 @@
 import { constants } from 'ethers';
+import { Contract, shortString } from 'starknet';
 
 import {
   ERC20__factory,
@@ -19,6 +20,7 @@ import { HyperlaneContracts } from '../contracts/types.js';
 import { ContractVerifier } from '../deploy/verify/ContractVerifier.js';
 import { HyperlaneIsmFactory } from '../ism/HyperlaneIsmFactory.js';
 import { MultiProvider } from '../providers/MultiProvider.js';
+import { defaultStarknetJsProviderBuilder } from '../providers/providerBuilders.js';
 import { GasRouterDeployer } from '../router/GasRouterDeployer.js';
 import { ChainName } from '../types.js';
 
@@ -143,7 +145,19 @@ abstract class TokenDeployer<
       }
 
       if (isCollateralTokenConfig(config) || isXERC20TokenConfig(config)) {
-        const provider = multiProvider.getProvider(chain);
+        // Add chain type checking
+        const chainMetadata = multiProvider.getChainMetadata(chain);
+        const isStarknet = chainMetadata.protocol === ProtocolType.Starknet;
+        let provider;
+
+        // Handle different chain types
+        if (isStarknet) {
+          provider = defaultStarknetJsProviderBuilder(
+            chainMetadata.rpcUrls,
+          ).provider;
+        } else {
+          provider = multiProvider.getProvider(chain) as any;
+        }
 
         if (config.isNft) {
           const erc721 = ERC721Enumerable__factory.connect(
@@ -177,6 +191,49 @@ abstract class TokenDeployer<
           default:
             token = config.token;
             break;
+        }
+        if (isStarknet) {
+          // TODO: check if taking ABI from starknet-core might break this
+          const erc20Abi = [
+            {
+              name: 'name',
+              type: 'function',
+              inputs: [],
+              outputs: [{ name: '', type: 'felt' }],
+              stateMutability: 'view',
+            },
+            {
+              name: 'symbol',
+              type: 'function',
+              inputs: [],
+              outputs: [{ name: '', type: 'felt' }],
+              stateMutability: 'view',
+            },
+            {
+              name: 'decimals',
+              type: 'function',
+              inputs: [],
+              outputs: [{ name: '', type: 'felt' }],
+              stateMutability: 'view',
+            },
+          ];
+          // Create contract instance
+          const erc20 = new Contract(erc20Abi, token, provider);
+          const [nameResult, symbolResult, decimalsResult] = await Promise.all([
+            erc20.name(),
+            erc20.symbol(),
+            erc20.decimals(),
+          ]);
+
+          // Parse the results - extract the values and convert them properly
+          const name = shortString.decodeShortString(nameResult['']);
+          const symbol = shortString.decodeShortString(symbolResult['']);
+          const decimals = Number(decimalsResult['']); // Convert BigInt to number
+          return TokenMetadataSchema.parse({
+            name,
+            symbol,
+            decimals,
+          });
         }
 
         const erc20 = ERC20__factory.connect(token, provider);

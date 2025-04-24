@@ -17,6 +17,7 @@ import {
 } from '@hyperlane-xyz/sdk';
 import { Address, assert, objMap, promiseObjAll } from '@hyperlane-xyz/utils';
 
+import { MultiProtocolSignerManager } from '../context/strategies/signer/MultiProtocolSignerManager.js';
 import { CommandContext } from '../context/types.js';
 import { errorRed, log, logBlue, logGreen } from '../logger.js';
 import { runMultiChainSelectionStep } from '../utils/chains.js';
@@ -110,10 +111,12 @@ export async function createWarpRouteDeployConfig({
   context,
   outPath,
   advanced = false,
+  multiProtocolSigner,
 }: {
   context: CommandContext;
   outPath: string;
   advanced: boolean;
+  multiProtocolSigner?: MultiProtocolSignerManager;
 }) {
   logBlue('Creating a new warp route deployment config...');
 
@@ -131,7 +134,11 @@ export async function createWarpRouteDeployConfig({
   for (const chain of warpChains) {
     logBlue(`${chain}: Configuring warp route...`);
     const owner = await detectAndConfirmOrPrompt(
-      async () => context.signerAddress,
+      async () =>
+        (await multiProtocolSigner?.getEVMSigner(chain))?.getAddress() ||
+        (
+          await multiProtocolSigner?.getStarknetSigner(chain)
+        )?.address,
       'Enter the desired',
       'owner address',
       'signer',
