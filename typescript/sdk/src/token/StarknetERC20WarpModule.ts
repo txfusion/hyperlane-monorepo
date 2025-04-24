@@ -1,6 +1,6 @@
 import {
   Account,
-  Contract,
+  MultiType,
   Uint256,
   byteArray,
   eth,
@@ -8,7 +8,11 @@ import {
   uint256,
 } from 'starknet';
 
-import { TokenType } from '@hyperlane-xyz/sdk';
+import {
+  StarknetContractName,
+  TokenType,
+  getStarknetHypERC20Contract,
+} from '@hyperlane-xyz/sdk';
 import { ContractType } from '@hyperlane-xyz/starknet-core';
 import { ProtocolType, assert, rootLogger } from '@hyperlane-xyz/utils';
 
@@ -18,19 +22,19 @@ import { MultiProvider } from '../providers/MultiProvider.js';
 import { ChainMap } from '../types.js';
 
 import { HypERC20Deployer } from './deploy.js';
-import { WarpRouteDeployConfig } from './types.js';
+import { PROTOCOL_TO_DEFAULT_NATIVE_TOKEN } from './nativeTokenMetadata.js';
+import { WarpRouteDeployConfigMailboxRequired } from './types.js';
 
 export class StarknetERC20WarpModule {
   protected logger = rootLogger.child({ module: 'StarknetERC20WarpModule' });
 
   constructor(
     protected readonly account: ChainMap<Account>,
-    protected readonly config: WarpRouteDeployConfig,
+    protected readonly config: WarpRouteDeployConfigMailboxRequired,
     protected readonly multiProvider: MultiProvider,
   ) {}
 
   public async deployToken(): Promise<ChainMap<string>> {
-    // TODO: manage this in a multi-protocol way, for now works as we just support native-synthetic pair
     const tokenMetadata = await HypERC20Deployer.deriveTokenMetadata(
       this.multiProvider,
       this.config,
@@ -51,7 +55,10 @@ export class StarknetERC20WarpModule {
       )
         continue;
 
-      const deployer = new StarknetDeployer(this.account[chain]);
+      const deployer = new StarknetDeployer(
+        this.account[chain],
+        this.multiProvider,
+      );
       const deployerAccountAddress = this.account[chain].address;
       const ismAddress = await this.getStarknetDeploymentISMAddress({
         ismConfig: interchainSecurityModule,
@@ -62,7 +69,7 @@ export class StarknetERC20WarpModule {
       switch (type) {
         case TokenType.synthetic: {
           const tokenAddress = await deployer.deployContract(
-            'HypErc20',
+            StarknetContractName.HYP_ERC20,
             {
               decimals: tokenMetadata.decimals,
               mailbox: mailbox!,
@@ -80,11 +87,12 @@ export class StarknetERC20WarpModule {
         }
         case TokenType.native: {
           const tokenAddress = await deployer.deployContract(
-            'HypNative',
+            StarknetContractName.HYP_NATIVE,
             {
-              mailbox: mailbox!,
-              native_token:
-                '0x49D36570D4E46F48E99674BD3FCC84644DDD6B96F7C741B1562B82F9E004DC7', // ETH address on Starknet chains
+              mailbox: mailbox,
+              native_token: PROTOCOL_TO_DEFAULT_NATIVE_TOKEN[
+                ProtocolType.Starknet
+              ]!.denom as MultiType,
               hook: getChecksumAddress(0),
               interchain_security_module: ismAddress,
               owner: deployerAccountAddress, //TODO: use config.owner, and in warp init ask for starknet owner
@@ -96,16 +104,8 @@ export class StarknetERC20WarpModule {
         }
 
         case TokenType.collateral: {
-          console.log({
-            mailbox: mailbox,
-            // @ts-ignore
-            erc20: rest.token,
-            owner: deployerAccountAddress, //TODO: use config.owner, and in warp init ask for starknet owner
-            hook: getChecksumAddress(0),
-            interchain_security_module: ismAddress,
-          });
           const tokenAddress = await deployer.deployContract(
-            'HypErc20Collateral',
+            StarknetContractName.HYP_ERC20_COLLATERAL,
             {
               mailbox: mailbox!,
               // @ts-ignore
@@ -166,73 +166,53 @@ export class StarknetERC20WarpModule {
 
       const account = this.account[chain];
 
-      // Updated Router ABI to include batch enrollment
-      const ROUTER_ABI = [
-        {
-          type: 'function',
-          name: 'enroll_remote_routers',
-          inputs: [
-            {
-              name: 'domains',
-              type: 'core::array::Array::<core::integer::u32>',
-            },
-            {
-              name: 'routers',
-              type: 'core::array::Array::<core::integer::u256>',
-            },
-          ],
-          outputs: [],
-          state_mutability: 'external',
+      // HypERC20 inherits RouterComponent
+      const routerContract = getStarknetHypERC20Contract(tokenAddress, account);
+
+      // Prepare arrays for batch enrollment
+      const domains: number[] = [];
+      const routers: Uint256[] = [];
+
+      // Collect all remote chains' data
+      Object.entries(routerAddresses).forEach(
+        ([remoteChain, remoteAddress]) => {
+          if (remoteChain === chain) return; // Skip self-enrollment
+
+          const remoteDomain = this.multiProvider.getDomainId(remoteChain);
+          const remoteProtocol =
+            this.multiProvider.getChainMetadata(remoteChain).protocol;
+
+          // Only validate and parse ETH address for Ethereum chains
+          const remoteRouter = uint256.bnToUint256(
+            remoteProtocol === ProtocolType.Ethereum
+              ? eth.validateAndParseEthAddress(remoteAddress)
+              : remoteAddress,
+          );
+
+          domains.push(remoteDomain);
+          routers.push(remoteRouter);
         },
-      ];
+      );
 
-      const contract = new Contract(ROUTER_ABI, tokenAddress, account);
+      this.logger.info(
+        `Batch enrolling ${domains.length} remote routers on ${chain}`,
+      );
 
-      try {
-        // Prepare arrays for batch enrollment
-        const domains: number[] = [];
-        const routers: Uint256[] = [];
+      const tx = await routerContract.invoke('enroll_remote_routers', [
+        domains,
+        routers,
+      ]);
 
-        // Collect all remote chains' data
-        Object.entries(routerAddresses).forEach(
-          ([remoteChain, remoteAddress]) => {
-            if (remoteChain === chain) return; // Skip self-enrollment
+      const receipt = await account.waitForTransaction(tx.transaction_hash);
 
-            const remoteDomain = this.multiProvider.getDomainId(remoteChain);
-            const remoteProtocol =
-              this.multiProvider.getChainMetadata(remoteChain).protocol;
-
-            // Only validate and parse ETH address for Ethereum chains
-            const remoteRouter = uint256.bnToUint256(
-              remoteProtocol === ProtocolType.Ethereum
-                ? eth.validateAndParseEthAddress(remoteAddress)
-                : remoteAddress,
-            );
-
-            domains.push(remoteDomain);
-            routers.push(remoteRouter);
-          },
-        );
-
-        this.logger.info(
-          `Batch enrolling ${domains.length} remote routers on ${chain}`,
-        );
-
-        const tx = await contract.invoke('enroll_remote_routers', [
-          domains,
-          routers,
-        ]);
-
-        await account.waitForTransaction(tx.transaction_hash);
-
+      if (receipt.isSuccess()) {
         this.logger.info(
           `Successfully enrolled all remote routers on ${chain}. Transaction: ${tx.transaction_hash}`,
         );
-      } catch (error) {
+      } else {
         this.logger.error(
-          `Failed to enroll remote routers on ${chain}: ${error}`,
+          `Failed to enroll all remote routers on ${chain}. Transaction: ${tx.transaction_hash}`,
         );
-        throw error;
       }
     }
   }

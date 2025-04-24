@@ -1,46 +1,64 @@
-import { Account, CairoCustomEnum, Contract, num } from 'starknet';
+import { CairoCustomEnum, num } from 'starknet';
 
-import { getCompiledContract } from '@hyperlane-xyz/starknet-core';
-import { Address, rootLogger } from '@hyperlane-xyz/utils';
+import {
+  ChainNameOrId,
+  StarknetIsmType,
+  StarknetJsProvider,
+  getStarknetContract,
+} from '@hyperlane-xyz/sdk';
+import { Address, WithAddress, rootLogger } from '@hyperlane-xyz/utils';
 
+import { MultiProtocolProvider } from '../providers/MultiProtocolProvider.js';
+
+import { DerivedIsmConfig } from './EvmIsmReader.js';
 import { StarknetIsmContractName } from './starknet-utils.js';
-import { IsmType } from './types.js';
+import {
+  AggregationIsmConfig,
+  IsmType,
+  MultisigIsmConfig,
+  RoutingIsmConfig,
+} from './types.js';
 
 export class StarknetIsmReader {
   protected readonly logger = rootLogger.child({ module: 'StarknetIsmReader' });
+  protected readonly provider: StarknetJsProvider['provider'];
 
-  constructor(protected readonly signer: Account) {}
-
-  private getContractAbi(ismType: keyof typeof StarknetIsmContractName) {
-    return getCompiledContract(StarknetIsmContractName[ismType]).abi;
+  constructor(
+    protected readonly multiProvider: MultiProtocolProvider,
+    protected readonly chain: ChainNameOrId,
+  ) {
+    this.provider = multiProvider.getStarknetProvider(this.chain);
   }
 
-  async deriveIsmConfig(address: Address): Promise<any> {
+  async deriveIsmConfig(address: Address): Promise<DerivedIsmConfig> {
     try {
-      const ism = new Contract(
-        this.getContractAbi(IsmType.ROUTING),
+      const ism = getStarknetContract(
+        StarknetIsmContractName[IsmType.MERKLE_ROOT_MULTISIG], // fn module_type same across all isms
         address,
-        this.signer,
+        this.provider,
       );
+
       const moduleType: CairoCustomEnum = await ism.module_type();
-      switch (moduleType.activeVariant()) {
-        case 'NULL':
-          return this.deriveNullConfig(address);
-        case 'MESSAGE_ID_MULTISIG':
-          return this.deriveMessageIdMultisigConfig(address);
-        case 'MERKLE_ROOT_MULTISIG':
-          return this.deriveMerkleRootMultisigConfig(address);
-        case 'ROUTING':
-          return this.deriveRoutingConfig(address);
-        case 'FALLBACK_ROUTING':
-          return this.deriveFallbackRoutingConfig(address);
-        case 'AGGREGATION':
+      const variant = moduleType.activeVariant();
+      switch (variant) {
+        case StarknetIsmType.AGGREGATION:
           return this.deriveAggregationConfig(address);
+        case StarknetIsmType.CCIP_READ:
+          throw new Error('CCIP_READ does not have a corresponding IsmType');
+        case StarknetIsmType.LEGACY_MULTISIG:
+          throw new Error('LEGACY_MULTISIG is deprecated and not supported');
+        case StarknetIsmType.MERKLE_ROOT_MULTISIG:
+          return this.deriveMerkleRootMultisigConfig(address);
+        case StarknetIsmType.MESSAGE_ID_MULTISIG:
+          return this.deriveMessageIdMultisigConfig(address);
+        case StarknetIsmType.NULL:
+          return this.deriveNullConfig(address);
+        case StarknetIsmType.ROUTING:
+          return this.deriveRoutingConfig(address);
+        case StarknetIsmType.UNUSED:
+          throw new Error('Error deriving NULL ISM type');
         default:
-          return {
-            type: IsmType.TEST_ISM,
-            address,
-          };
+          throw new Error(`Unknown ISM ModuleType: ${variant}`);
       }
     } catch (error) {
       this.logger.error(`Failed to derive ISM config for ${address}`, error);
@@ -48,51 +66,43 @@ export class StarknetIsmReader {
     }
   }
 
-  private async deriveNullConfig(address: Address) {
-    try {
-      const ism = new Contract(
-        this.getContractAbi(IsmType.PAUSABLE),
-        address,
-        this.signer,
-      );
-      await ism.paused(); // Will succeed for pausable ISM
-      return {
-        type: IsmType.PAUSABLE,
-        address,
-      };
-    } catch {
-      return {
-        type: IsmType.TRUSTED_RELAYER,
-        address,
-      };
-    }
-  }
-
-  private async deriveMessageIdMultisigConfig(address: Address) {
-    const ism = new Contract(
-      this.getContractAbi(IsmType.MESSAGE_ID_MULTISIG),
+  private async deriveAggregationConfig(
+    address: Address,
+  ): Promise<WithAddress<AggregationIsmConfig>> {
+    const ism = getStarknetContract(
+      StarknetIsmContractName[IsmType.AGGREGATION],
       address,
-      this.signer,
+      this.provider,
     );
 
-    const [validators, threshold] = await Promise.all([
-      ism.get_validators(),
+    const [modules, threshold] = await Promise.all([
+      ism.get_modules(),
       ism.get_threshold(),
     ]);
 
+    const moduleConfigs = await Promise.all(
+      modules.map(async (moduleAddress: any) => {
+        return await this.deriveIsmConfig(
+          num.toHex64(moduleAddress.toString()),
+        );
+      }),
+    );
+
     return {
-      type: IsmType.MESSAGE_ID_MULTISIG,
+      type: IsmType.AGGREGATION,
       address,
-      validators: validators.map((v: any) => num.toHex64(v.toString())),
+      modules: moduleConfigs.filter(Boolean),
       threshold: threshold.toString(),
     };
   }
 
-  private async deriveMerkleRootMultisigConfig(address: Address) {
-    const ism = new Contract(
-      this.getContractAbi(IsmType.MERKLE_ROOT_MULTISIG),
+  private async deriveMerkleRootMultisigConfig(
+    address: Address,
+  ): Promise<WithAddress<MultisigIsmConfig>> {
+    const ism = getStarknetContract(
+      StarknetIsmContractName[IsmType.MERKLE_ROOT_MULTISIG],
       address,
-      this.signer,
+      this.provider,
     );
 
     const [validators, threshold] = await Promise.all([
@@ -108,14 +118,45 @@ export class StarknetIsmReader {
     };
   }
 
-  private async deriveRoutingConfig(address: Address) {
-    const ism = new Contract(
-      this.getContractAbi(IsmType.ROUTING),
+  private async deriveMessageIdMultisigConfig(
+    address: Address,
+  ): Promise<DerivedIsmConfig> {
+    const ism = getStarknetContract(
+      StarknetIsmContractName[IsmType.MESSAGE_ID_MULTISIG],
       address,
-      this.signer,
+      this.provider,
     );
 
-    const domains = await ism.domains();
+    const [validators, threshold] = await Promise.all([
+      ism.get_validators(),
+      ism.get_threshold(),
+    ]);
+
+    return {
+      type: IsmType.MESSAGE_ID_MULTISIG,
+      address,
+      validators: validators.map((v: any) => num.toHex64(v.toString())),
+      threshold: threshold.toString(),
+    };
+  }
+
+  private async deriveNullConfig(address: Address): Promise<DerivedIsmConfig> {
+    return {
+      type: IsmType.TEST_ISM,
+      address,
+    };
+  }
+
+  private async deriveRoutingConfig(
+    address: Address,
+  ): Promise<WithAddress<RoutingIsmConfig>> {
+    const ism = getStarknetContract(
+      StarknetIsmContractName[IsmType.ROUTING],
+      address,
+      this.provider,
+    );
+
+    const [domains, owner] = await Promise.all([ism.domains(), ism.owner()]);
     const domainConfigs: Record<string, any> = {};
 
     for (const domain of domains) {
@@ -137,76 +178,7 @@ export class StarknetIsmReader {
       type: IsmType.ROUTING,
       address,
       domains: domainConfigs,
-    };
-  }
-
-  private async deriveFallbackRoutingConfig(address: Address) {
-    const ism = new Contract(
-      this.getContractAbi(IsmType.FALLBACK_ROUTING),
-      address,
-      this.signer,
-    );
-
-    const domains = await ism.domains();
-    const domainConfigs: Record<string, any> = {};
-    const mailbox = await ism.mailbox();
-
-    for (const domain of domains) {
-      try {
-        const module = await ism.module(domain);
-        const moduleConfig = await this.deriveIsmConfig(
-          num.toHex64(module.toString()),
-        );
-        domainConfigs[domain.toString()] = moduleConfig;
-      } catch (error) {
-        this.logger.error(
-          `Failed to derive config for domain ${domain}`,
-          error,
-        );
-      }
-    }
-
-    return {
-      type: IsmType.FALLBACK_ROUTING,
-      address,
-      domains: domainConfigs,
-      mailbox: num.toHex64(mailbox.toString()),
-    };
-  }
-
-  private async deriveAggregationConfig(address: Address) {
-    const ism = new Contract(
-      this.getContractAbi(IsmType.AGGREGATION),
-      address,
-      this.signer,
-    );
-
-    const [modules, threshold] = await Promise.all([
-      ism.get_modules(),
-      ism.get_threshold(),
-    ]);
-
-    const moduleConfigs = await Promise.all(
-      modules.map(async (moduleAddress: any) => {
-        try {
-          return await this.deriveIsmConfig(
-            num.toHex64(moduleAddress.toString()),
-          );
-        } catch (error) {
-          this.logger.error(
-            `Failed to derive config for module ${moduleAddress}`,
-            error,
-          );
-          return null;
-        }
-      }),
-    );
-
-    return {
-      type: IsmType.AGGREGATION,
-      address,
-      modules: moduleConfigs.filter(Boolean),
-      threshold: threshold.toString(),
+      owner: num.toHex64(owner.toString()),
     };
   }
 }

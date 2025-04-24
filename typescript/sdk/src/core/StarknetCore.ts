@@ -1,167 +1,293 @@
-import { Account, CairoOption, CairoOptionVariant, Contract } from 'starknet';
+import {
+  Account,
+  CairoOption,
+  CairoOptionVariant,
+  GetTransactionReceiptResponse,
+  InvokeFunctionResponse,
+} from 'starknet';
 
 import {
   ChainName,
+  DispatchedMessage,
   HyperlaneAddressesMap,
+  MultiProtocolProvider,
   MultiProvider,
 } from '@hyperlane-xyz/sdk';
-import { getCompiledContract } from '@hyperlane-xyz/starknet-core';
-import { rootLogger } from '@hyperlane-xyz/utils';
+import { Address, pollAsync, rootLogger } from '@hyperlane-xyz/utils';
+
+import { toStarknetMessageBytes } from '../messaging/messageUtils.js';
+import {
+  getStarknetMailboxContract,
+  parseStarknetDispatchEvents,
+  quoteStarknetDispatch,
+} from '../utils/starknet.js';
+
+export interface IMultiProtocolSignerManager {
+  getStarknetSigner(chain: ChainName): Account;
+}
 
 export class StarknetCore {
   protected logger = rootLogger.child({ module: 'StarknetCore' });
-  protected signer: Account;
   protected addressesMap: HyperlaneAddressesMap<any>;
-  protected multiProvider: MultiProvider;
+  public multiProvider: MultiProvider;
+  private multiProtocolSigner: IMultiProtocolSignerManager;
+  private multiProtocolProvider: MultiProtocolProvider;
 
   constructor(
-    signer: Account, // Use MultiProtocolSignerManager instead
     addressesMap: HyperlaneAddressesMap<any>,
     multiProvider: MultiProvider,
+    multiProtocolSigner: IMultiProtocolSignerManager,
+    multiProtocolProvider: MultiProtocolProvider,
   ) {
-    this.signer = signer;
     this.addressesMap = addressesMap;
     this.multiProvider = multiProvider;
+    this.multiProtocolSigner = multiProtocolSigner;
+    this.multiProtocolProvider = multiProtocolProvider;
   }
 
-  /**
-   * Convert a byte array to a starknet message
-   * Pads the bytes to 16 bytes chunks
-   * @param bytes Input byte array
-   * @returns Object containing size and padded data array
-   */
-  static toStarknetMessageBytes(bytes: Uint8Array): {
-    size: number;
-    data: bigint[];
-  } {
-    // Calculate the required padding
-    const padding = (16 - (bytes.length % 16)) % 16;
-    const totalLen = bytes.length + padding;
-
-    // Create a new byte array with the necessary padding
-    const paddedBytes = new Uint8Array(totalLen);
-    paddedBytes.set(bytes);
-    // Padding remains as zeros by default in Uint8Array
-
-    // Convert to chunks of 16 bytes
-    const result: bigint[] = [];
-    for (let i = 0; i < totalLen; i += 16) {
-      const chunk = paddedBytes.slice(i, i + 16);
-      // Convert chunk to bigint (equivalent to u128 in Rust)
-      const value = BigInt('0x' + Buffer.from(chunk).toString('hex'));
-      result.push(value);
-    }
-
-    return {
-      size: bytes.length,
-      data: result,
-    };
+  getAddresses(chain: ChainName) {
+    return this.addressesMap[chain];
   }
 
-  static getMailboxContract(address: string, signer: Account): Contract {
-    const { abi } = getCompiledContract('mailbox');
-    return new Contract(abi, address, signer);
+  parseDispatchedMessagesFromReceipt(
+    receipt: GetTransactionReceiptResponse,
+    origin: ChainName,
+  ): DispatchedMessage {
+    const mailboxAddress = this.addressesMap[origin].mailbox;
+    const signer = this.multiProtocolSigner.getStarknetSigner(origin);
+    const mailboxContract = getStarknetMailboxContract(mailboxAddress, signer);
+
+    const parsedEvents = mailboxContract.parseEvents(receipt);
+    return parseStarknetDispatchEvents(
+      parsedEvents,
+      (domain) => this.multiProvider.tryGetChainName(domain) ?? undefined,
+    )[0];
   }
 
-  async sendMessage(params: {
-    origin: ChainName;
-    destinationDomain: number;
-    recipientAddress: string;
-    messageBody: string;
-  }): Promise<{ txHash: string; messages: any[] }> {
-    const mailboxAddress = this.addressesMap[params.origin].mailbox;
-    const mailboxContract = StarknetCore.getMailboxContract(
+  async sendMessage(
+    origin: ChainName,
+    destination: ChainName,
+    recipient: Address,
+    body: string,
+    _hook?: Address,
+    _metadata?: string,
+  ): Promise<{
+    dispatchTx: InvokeFunctionResponse;
+    message: DispatchedMessage;
+  }> {
+    const destinationDomain = this.multiProvider.getDomainId(destination);
+    const mailboxAddress = this.addressesMap[origin].mailbox;
+    const mailboxContract = getStarknetMailboxContract(
       mailboxAddress,
-      this.signer,
+      this.multiProtocolSigner.getStarknetSigner(origin),
     );
 
-    // Convert messageBody to Bytes struct format
-    const messageBodyBytes = StarknetCore.toStarknetMessageBytes(
-      new TextEncoder().encode(params.messageBody),
+    const messageBodyBytes = toStarknetMessageBytes(
+      new TextEncoder().encode(body),
     );
-    console.log({
+
+    this.logger.debug({
       messageBodyBytes,
-      encoded: new TextEncoder().encode(params.messageBody),
+      encoded: new TextEncoder().encode(body),
     });
 
     const nonOption = new CairoOption(CairoOptionVariant.None);
 
     // Quote the dispatch first to ensure enough fees are provided
-    const quote = await mailboxContract.call('quote_dispatch', [
-      params.destinationDomain,
-      params.recipientAddress,
-      messageBodyBytes,
-      nonOption,
-      nonOption,
-    ]);
+    const quote = await quoteStarknetDispatch({
+      mailboxContract,
+      destinationDomain,
+      recipientAddress: recipient,
+      messageBody: messageBodyBytes,
+    });
 
-    // Dispatch the message
-    const { transaction_hash } = await mailboxContract.invoke('dispatch', [
-      params.destinationDomain,
-      params.recipientAddress,
+    const dispatchTx = await mailboxContract.invoke('dispatch', [
+      destinationDomain,
+      recipient,
       messageBodyBytes,
       BigInt(quote.toString()), //fee amount
       nonOption,
       nonOption,
     ]);
 
-    this.logger.info(`Message sent with transaction hash: ${transaction_hash}`);
+    this.logger.info(
+      `Message sent with transaction hash: ${dispatchTx.transaction_hash}`,
+    );
+    const account = this.multiProtocolSigner.getStarknetSigner(origin);
+    const receipt = await account.waitForTransaction(
+      dispatchTx.transaction_hash,
+    );
 
-    const receipt = await this.signer.waitForTransaction(transaction_hash);
     const parsedEvents = mailboxContract.parseEvents(receipt);
 
     return {
-      txHash: transaction_hash,
-      messages: this.getDispatchedMessages(parsedEvents),
+      dispatchTx,
+      message: parseStarknetDispatchEvents(
+        parsedEvents,
+        (domain) => this.multiProvider.tryGetChainName(domain) ?? undefined,
+      )[0],
     };
   }
 
-  async quoteDispatch(params: {
-    destinationDomain: number;
-    recipientAddress: string;
-    messageBody: string;
-    customHookMetadata?: string;
-    customHook?: string;
-  }): Promise<string> {
-    const { abi } = getCompiledContract('mailbox');
-    const mailboxContract = new Contract(abi, 'mailbox_address', this.signer);
+  onDispatch(
+    handler: (message: DispatchedMessage, event: any) => Promise<void>,
+    chains = Object.keys(this.addressesMap),
+  ): {
+    removeHandler: (chains?: ChainName[]) => void;
+  } {
+    const eventSubscriptions: (() => void)[] = [];
 
-    const quote = await mailboxContract.call('quote_dispatch', [
-      params.destinationDomain,
-      params.recipientAddress,
-      params.messageBody,
-      params.customHookMetadata || '',
-      params.customHook || '',
-    ]);
+    chains.forEach((originChain) => {
+      const account = this.multiProtocolSigner.getStarknetSigner(originChain);
+      const mailboxAddress = this.addressesMap[originChain].mailbox;
+      const mailboxContract = getStarknetMailboxContract(
+        mailboxAddress,
+        account,
+      );
 
-    return quote.toString();
+      this.logger.debug(`Listening for dispatch on ${originChain}`);
+
+      let lastBlockChecked: number | undefined;
+
+      const pollForEvents = async () => {
+        try {
+          // Get the latest block
+          const provider =
+            this.multiProtocolProvider.getStarknetProvider(originChain);
+          const latestBlock = await provider.getBlock('latest');
+
+          // If this is the first check, just record the current block and wait for next poll
+          if (lastBlockChecked === undefined) {
+            lastBlockChecked = latestBlock.block_number;
+            return;
+          }
+
+          // Only check for new blocks
+          if (latestBlock.block_number <= lastBlockChecked) {
+            return;
+          }
+
+          // Get events from the blocks we haven't checked yet
+          const { events } = await provider.getEvents({
+            address: mailboxAddress,
+            from_block: { block_number: lastBlockChecked + 1 },
+            to_block: { block_number: latestBlock.block_number },
+            chunk_size: 400, // not sure what this is
+          });
+
+          lastBlockChecked = latestBlock.block_number;
+
+          if (events.length > 0) {
+            for (const event of events) {
+              // Get transaction receipt -> this is the receipt of the dispatch transaction
+              const receipt = await provider.getTransactionReceipt(
+                event.transaction_hash,
+              );
+
+              const parsedEvents = mailboxContract.parseEvents(receipt);
+              const messages = parseStarknetDispatchEvents(
+                parsedEvents,
+                (domain) =>
+                  this.multiProvider.tryGetChainName(domain) ?? undefined,
+              );
+
+              for (const dispatched of messages) {
+                this.logger.info(
+                  `Observed message ${dispatched.id} on ${originChain} to ${dispatched.parsed.destinationChain}`,
+                );
+
+                await handler(dispatched, event);
+              }
+            }
+          }
+        } catch (error) {
+          this.logger.error(
+            `Error polling for events on ${originChain}: ${error}`,
+          );
+        }
+      };
+
+      const intervalId = setInterval(pollForEvents, 10000); // Poll every 15 seconds
+
+      pollForEvents().catch((error) => {
+        this.logger.error(
+          `Error in initial poll for events on ${originChain}: ${error}`,
+        );
+      });
+
+      eventSubscriptions.push(() => {
+        clearInterval(intervalId);
+      });
+    });
+
+    return {
+      removeHandler: (removeChains?: ChainName[]) => {
+        (removeChains ?? chains).forEach((chain, index) => {
+          if (eventSubscriptions[index]) {
+            eventSubscriptions[index]();
+            this.logger.debug(`Stopped listening for dispatch on ${chain}`);
+          }
+        });
+      },
+    };
   }
 
-  getDispatchedMessages(parsedEvents: any): any {
-    return parsedEvents
-      .filter((event: any) => 'contracts::mailbox::mailbox::Dispatch' in event)
-      .map((event: any) => {
-        const dispatchEvent = event['contracts::mailbox::mailbox::Dispatch'];
-        const message = dispatchEvent.message;
+  async deliver(
+    message: DispatchedMessage,
+    metadata: any,
+  ): Promise<{ transaction_hash: string }> {
+    const destinationChain = this.multiProvider.getChainName(
+      message.parsed.destination,
+    );
+    const mailboxAddress = this.addressesMap[destinationChain].mailbox;
+    const mailboxContract = getStarknetMailboxContract(
+      mailboxAddress,
+      this.multiProtocolSigner.getStarknetSigner(destinationChain),
+    );
 
-        const originChain =
-          this.multiProvider.tryGetChainName(message.origin) ?? undefined;
-        const destinationChain =
-          this.multiProvider.tryGetChainName(message.destination) ?? undefined;
+    const data = message.message;
 
-        // Convert the message to the expected format
-        // TODO: stringify the message body
-        const messageString = {
-          version: Number(message.version),
-          nonce: Number(message.nonce),
-          origin: originChain,
-          sender: message.sender.toString(),
-          destination: destinationChain,
-          recipient: message.recipient.toString(),
-          body: Array.from(message.body.data).map((n: any) => n.toString()), // TODO: causes stringify error
-        };
+    const { transaction_hash } = await mailboxContract.invoke('process', [
+      metadata,
+      data, // formatted message
+    ]);
 
-        return messageString;
-      });
+    this.logger.info(
+      `Message processed with transaction hash: ${transaction_hash}`,
+    );
+
+    // Wait for transaction to be mined
+    await this.multiProtocolSigner
+      .getStarknetSigner(destinationChain)
+      .waitForTransaction(transaction_hash);
+
+    return { transaction_hash };
+  }
+
+  async waitForMessageIdProcessed(
+    messageId: string,
+    destinationChain: ChainName,
+    delay?: number,
+    maxAttempts?: number,
+  ): Promise<true> {
+    await pollAsync(
+      async () => {
+        const mailboxAddress = this.addressesMap[destinationChain].mailbox;
+        const mailboxContract = getStarknetMailboxContract(
+          mailboxAddress,
+          this.multiProtocolSigner.getStarknetSigner(destinationChain),
+        );
+        const delivered = await mailboxContract.delivered(messageId);
+        if (delivered) {
+          this.logger.info(`Message ${messageId} was processed`);
+          return true;
+        } else {
+          throw new Error(`Message ${messageId} not yet processed`);
+        }
+      },
+      delay,
+      maxAttempts,
+    );
+    return true;
   }
 }
