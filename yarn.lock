@@ -7692,14 +7692,58 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hyperlane-xyz/core@npm:6.1.0, @hyperlane-xyz/core@workspace:solidity":
+"@hyperlane-xyz/core@npm:6.1.0":
+  version: 6.1.0
+  resolution: "@hyperlane-xyz/core@npm:6.1.0"
+  dependencies:
+    "@arbitrum/nitro-contracts": "npm:^1.2.1"
+    "@chainlink/contracts-ccip": "npm:^1.5.0"
+    "@eth-optimism/contracts": "npm:^0.6.0"
+    "@hyperlane-xyz/utils": "npm:11.0.0"
+    "@layerzerolabs/lz-evm-oapp-v2": "npm:2.0.2"
+    "@matterlabs/hardhat-zksync-solc": "npm:1.2.5"
+    "@matterlabs/hardhat-zksync-verify": "npm:1.7.1"
+    "@openzeppelin/contracts": "npm:^4.9.3"
+    "@openzeppelin/contracts-upgradeable": "npm:^4.9.3"
+    fx-portal: "npm:^1.0.3"
+  peerDependencies:
+    "@ethersproject/abi": "*"
+    "@ethersproject/providers": "*"
+    "@types/sinon-chai": "*"
+  checksum: 10/a45eb1ae30b240f345b8873d6d8f2ee98cca6701fcbe1ef2bcd62f9d47ce7399137b2d4c5ab6abee41ffde6ae5892af54158b9e39394509781a9a9e6acd8ece1
+  languageName: node
+  linkType: hard
+
+"@hyperlane-xyz/core@npm:7.1.0":
+  version: 7.1.0
+  resolution: "@hyperlane-xyz/core@npm:7.1.0"
+  dependencies:
+    "@arbitrum/nitro-contracts": "npm:^1.2.1"
+    "@chainlink/contracts-ccip": "npm:^1.5.0"
+    "@eth-optimism/contracts": "npm:^0.6.0"
+    "@hyperlane-xyz/utils": "npm:12.1.0"
+    "@layerzerolabs/lz-evm-oapp-v2": "npm:2.0.2"
+    "@matterlabs/hardhat-zksync-solc": "npm:1.2.5"
+    "@matterlabs/hardhat-zksync-verify": "npm:1.7.1"
+    "@openzeppelin/contracts": "npm:^4.9.3"
+    "@openzeppelin/contracts-upgradeable": "npm:^4.9.3"
+    fx-portal: "npm:^1.0.3"
+  peerDependencies:
+    "@ethersproject/abi": "*"
+    "@ethersproject/providers": "*"
+    "@types/sinon-chai": "*"
+  checksum: 10/fe76fa68ccecdb1832b58e8d91fd89c3f66ff7f99b37302a5a57e5efd1d160e73fb2a34f2b36050cc40384cedfb933ffa94c8c4a0698ee8bdf0d2b79ea849980
+  languageName: node
+  linkType: hard
+
+"@hyperlane-xyz/core@workspace:solidity":
   version: 0.0.0-use.local
   resolution: "@hyperlane-xyz/core@workspace:solidity"
   dependencies:
     "@arbitrum/nitro-contracts": "npm:^1.2.1"
     "@chainlink/contracts-ccip": "npm:^1.5.0"
     "@eth-optimism/contracts": "npm:^0.6.0"
-    "@hyperlane-xyz/utils": "npm:11.0.0"
+    "@hyperlane-xyz/utils": "npm:12.1.0"
     "@layerzerolabs/lz-evm-oapp-v2": "npm:2.0.2"
     "@layerzerolabs/solidity-examples": "npm:^1.1.0"
     "@matterlabs/hardhat-zksync-solc": "npm:1.2.5"
@@ -7738,28 +7782,6 @@ __metadata:
     "@types/sinon-chai": "*"
   languageName: unknown
   linkType: soft
-
-"@hyperlane-xyz/core@npm:7.1.0":
-  version: 7.1.0
-  resolution: "@hyperlane-xyz/core@npm:7.1.0"
-  dependencies:
-    "@arbitrum/nitro-contracts": "npm:^1.2.1"
-    "@chainlink/contracts-ccip": "npm:^1.5.0"
-    "@eth-optimism/contracts": "npm:^0.6.0"
-    "@hyperlane-xyz/utils": "npm:12.1.0"
-    "@layerzerolabs/lz-evm-oapp-v2": "npm:2.0.2"
-    "@matterlabs/hardhat-zksync-solc": "npm:1.2.5"
-    "@matterlabs/hardhat-zksync-verify": "npm:1.7.1"
-    "@openzeppelin/contracts": "npm:^4.9.3"
-    "@openzeppelin/contracts-upgradeable": "npm:^4.9.3"
-    fx-portal: "npm:^1.0.3"
-  peerDependencies:
-    "@ethersproject/abi": "*"
-    "@ethersproject/providers": "*"
-    "@types/sinon-chai": "*"
-  checksum: 10/fe76fa68ccecdb1832b58e8d91fd89c3f66ff7f99b37302a5a57e5efd1d160e73fb2a34f2b36050cc40384cedfb933ffa94c8c4a0698ee8bdf0d2b79ea849980
-  languageName: node
-  linkType: hard
 
 "@hyperlane-xyz/cosmos-sdk@workspace:typescript/cosmos-sdk":
   version: 0.0.0-use.local
