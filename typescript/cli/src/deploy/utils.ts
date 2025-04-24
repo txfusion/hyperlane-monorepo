@@ -57,7 +57,7 @@ export async function runPreflightChecksForChains({
     if (metadata.protocol === ProtocolType.Ethereum) {
       const signer = multiProvider.getSigner(chain);
       assertSigner(signer);
-      logGreen(`✅ ${chain} signer is valid`);
+      logGreen(`✅ ${metadata.displayName ?? chain} signer is valid`);
     }
   }
   logGreen('✅ Chains are valid');

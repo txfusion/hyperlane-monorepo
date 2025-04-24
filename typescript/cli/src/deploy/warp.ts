@@ -86,7 +86,11 @@ import {
   writeYamlOrJson,
 } from '../utils/files.js';
 
-import { prepareDeploy, runPreflightChecksForChains } from './utils.js';
+import {
+  completeDeploy,
+  prepareDeploy,
+  runPreflightChecksForChains,
+} from './utils.js';
 
 interface DeployParams {
   context: WriteCommandContext;
