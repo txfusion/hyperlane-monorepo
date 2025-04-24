@@ -8054,7 +8054,37 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hyperlane-xyz/utils@npm:11.0.0, @hyperlane-xyz/utils@workspace:typescript/utils":
+"@hyperlane-xyz/utils@npm:11.0.0":
+  version: 11.0.0
+  resolution: "@hyperlane-xyz/utils@npm:11.0.0"
+  dependencies:
+    "@cosmjs/encoding": "npm:^0.32.4"
+    "@solana/web3.js": "npm:^1.95.4"
+    bignumber.js: "npm:^9.1.1"
+    ethers: "npm:^5.7.2"
+    lodash-es: "npm:^4.17.21"
+    pino: "npm:^8.19.0"
+    yaml: "npm:2.4.5"
+  checksum: 10/1f605c1280b23877ff696a31d325c0869af4671f7b3658ae0a31c2359b971c970e180cb91257732cf23f239fc5e70f6b1bc9dd05d959b698a2599e466c04fca0
+  languageName: node
+  linkType: hard
+
+"@hyperlane-xyz/utils@npm:12.1.0":
+  version: 12.1.0
+  resolution: "@hyperlane-xyz/utils@npm:12.1.0"
+  dependencies:
+    "@cosmjs/encoding": "npm:^0.32.4"
+    "@solana/web3.js": "npm:^1.95.4"
+    bignumber.js: "npm:^9.1.1"
+    ethers: "npm:^5.7.2"
+    lodash-es: "npm:^4.17.21"
+    pino: "npm:^8.19.0"
+    yaml: "npm:2.4.5"
+  checksum: 10/628225400fad5fe43db506939f8ecfc0dabfffc0c29f64a7ed2a47c45898abce7134e2d8787a971939c0416b660f06b9d2fbf30454dc32dce315a8dcb83174ed
+  languageName: node
+  linkType: hard
+
+"@hyperlane-xyz/utils@workspace:typescript/utils":
   version: 0.0.0-use.local
   resolution: "@hyperlane-xyz/utils@workspace:typescript/utils"
   dependencies:
@@ -8083,21 +8113,6 @@ __metadata:
     yaml: "npm:2.4.5"
   languageName: unknown
   linkType: soft
-
-"@hyperlane-xyz/utils@npm:12.1.0":
-  version: 12.1.0
-  resolution: "@hyperlane-xyz/utils@npm:12.1.0"
-  dependencies:
-    "@cosmjs/encoding": "npm:^0.32.4"
-    "@solana/web3.js": "npm:^1.95.4"
-    bignumber.js: "npm:^9.1.1"
-    ethers: "npm:^5.7.2"
-    lodash-es: "npm:^4.17.21"
-    pino: "npm:^8.19.0"
-    yaml: "npm:2.4.5"
-  checksum: 10/628225400fad5fe43db506939f8ecfc0dabfffc0c29f64a7ed2a47c45898abce7134e2d8787a971939c0416b660f06b9d2fbf30454dc32dce315a8dcb83174ed
-  languageName: node
-  linkType: hard
 
 "@hyperlane-xyz/widgets@workspace:typescript/widgets":
   version: 0.0.0-use.local
