@@ -7817,25 +7817,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@hyperlane-xyz/helloworld@npm:11.0.0":
-  version: 11.0.0
-  resolution: "@hyperlane-xyz/helloworld@npm:11.0.0"
-  dependencies:
-    "@hyperlane-xyz/core": "npm:6.1.0"
-    "@hyperlane-xyz/registry": "npm:11.1.0"
-    "@hyperlane-xyz/sdk": "npm:11.0.0"
-    "@openzeppelin/contracts-upgradeable": "npm:^4.9.3"
-    ethers: "npm:^5.7.2"
-  peerDependencies:
-    "@ethersproject/abi": "*"
-    "@ethersproject/providers": "*"
-    "@types/node": "*"
-    "@types/sinon-chai": "*"
-  checksum: 10/09a412a062e3390807d89ce442af4b57f2eb0d9ff6297d7493898c9e4dc0208cd317980a3bc7906b2fca840fee6a5ad5400d05cd1eddfbe93d67d717a39b8b05
-  languageName: node
-  linkType: hard
-
-"@hyperlane-xyz/helloworld@workspace:typescript/helloworld":
+"@hyperlane-xyz/helloworld@npm:12.1.0, @hyperlane-xyz/helloworld@workspace:typescript/helloworld":
   version: 0.0.0-use.local
   resolution: "@hyperlane-xyz/helloworld@workspace:typescript/helloworld"
   dependencies:
@@ -7891,10 +7873,10 @@ __metadata:
     "@ethersproject/hardware-wallets": "npm:^5.7.0"
     "@ethersproject/providers": "npm:*"
     "@google-cloud/secret-manager": "npm:^5.5.0"
-    "@hyperlane-xyz/helloworld": "npm:11.0.0"
+    "@hyperlane-xyz/helloworld": "npm:12.1.0"
     "@hyperlane-xyz/registry": "npm:11.1.0"
-    "@hyperlane-xyz/sdk": "npm:11.0.0"
-    "@hyperlane-xyz/utils": "npm:11.0.0"
+    "@hyperlane-xyz/sdk": "npm:12.1.0"
+    "@hyperlane-xyz/utils": "npm:12.1.0"
     "@inquirer/prompts": "npm:3.3.2"
     "@nomiclabs/hardhat-ethers": "npm:^2.2.3"
     "@nomiclabs/hardhat-etherscan": "npm:^3.0.3"
