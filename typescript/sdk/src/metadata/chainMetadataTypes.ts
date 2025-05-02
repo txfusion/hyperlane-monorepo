@@ -134,6 +134,11 @@ export const NativeTokenSchema = z.object({
   denom: z.string().optional(),
 });
 
+export const GasPriceSchema = z.object({
+  denom: z.string(),
+  amount: z.string(),
+});
+
 export const DisabledChainSchema = z.object({
   status: z
     .literal(ChainStatus.Disabled)
@@ -198,6 +203,11 @@ export const ChainMetadataSchemaObject = z.object({
     })
     .optional()
     .describe('Block settings for the chain/deployment.'),
+
+  bypassBatchSimulation: z
+    .boolean()
+    .optional()
+    .describe('Whether to bypass batch simulation for this chain.'),
 
   chainId: z
     .union([ZNzUint, z.string()])
@@ -315,6 +325,10 @@ export const ChainMetadataSchemaObject = z.object({
     .record(z.any())
     .optional()
     .describe('Properties to include when forming transaction requests.'),
+
+  gasPrice: GasPriceSchema.optional().describe(
+    'The gas price of Cosmos chains.',
+  ),
 });
 
 // Passthrough allows for extra fields to remain in the object (such as extensions consumers may want like `mailbox`)
@@ -331,7 +345,8 @@ export const ChainMetadataSchema = ChainMetadataSchemaExtensible.refine(
     )
       return false;
     else if (
-      metadata.protocol === ProtocolType.Cosmos &&
+      (metadata.protocol === ProtocolType.Cosmos ||
+        metadata.protocol === ProtocolType.CosmosNative) &&
       typeof metadata.chainId !== 'string'
     )
       return false;
@@ -350,7 +365,8 @@ export const ChainMetadataSchema = ChainMetadataSchemaExtensible.refine(
   .refine(
     (metadata) => {
       if (
-        metadata.protocol === ProtocolType.Cosmos &&
+        (metadata.protocol === ProtocolType.Cosmos ||
+          metadata.protocol === ProtocolType.CosmosNative) &&
         (!metadata.bech32Prefix || !metadata.slip44)
       )
         return false;
@@ -364,7 +380,8 @@ export const ChainMetadataSchema = ChainMetadataSchemaExtensible.refine(
   .refine(
     (metadata) => {
       if (
-        metadata.protocol === ProtocolType.Cosmos &&
+        (metadata.protocol === ProtocolType.Cosmos ||
+          metadata.protocol === ProtocolType.CosmosNative) &&
         (!metadata.restUrls || !metadata.grpcUrls)
       )
         return false;
@@ -378,7 +395,8 @@ export const ChainMetadataSchema = ChainMetadataSchemaExtensible.refine(
   .refine(
     (metadata) => {
       if (
-        metadata.protocol === ProtocolType.Cosmos &&
+        (metadata.protocol === ProtocolType.Cosmos ||
+          metadata.protocol === ProtocolType.CosmosNative) &&
         metadata.nativeToken &&
         !metadata.nativeToken.denom
       )
