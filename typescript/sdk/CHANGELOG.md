@@ -1,5 +1,45 @@
 # @hyperlane-xyz/sdk
 
+# <<<<<<< HEAD
+
+## 12.5.0
+
+### Patch Changes
+
+- c8ace88: Export HypTokenRouterConfigMailboxOptionalSchema and HypTokenRouterConfigMailboxOptional
+  - @hyperlane-xyz/cosmos-sdk@12.5.0
+  - @hyperlane-xyz/utils@12.5.0
+  - @hyperlane-xyz/core@7.1.4
+
+## 12.4.0
+
+### Minor Changes
+
+- d2babb7: Remove fallback logic to derive extra lockboxes from rpc
+
+### Patch Changes
+
+- @hyperlane-xyz/cosmos-sdk@12.4.0
+- @hyperlane-xyz/utils@12.4.0
+- @hyperlane-xyz/core@7.1.3
+
+## 12.3.0
+
+### Minor Changes
+
+- 6101959f7: Enhanced the router enrollment check to support non-fully connected warp routes using the `remoteRouters` property from the deployment config.
+- 5db39f493: Fixes to support CosmosNative and warp apply with foreign deployments.
+- 7500bd6fe: implemented cosmos protocol type and cosmos token adapter
+
+### Patch Changes
+
+- Updated dependencies [7500bd6fe]
+  - @hyperlane-xyz/utils@12.3.0
+  - @hyperlane-xyz/core@7.1.2
+  - @hyperlane-xyz/cosmos-sdk@12.3.0
+
+> > > > > > > origin/main
+
 ## 12.2.0
 
 ### Minor Changes

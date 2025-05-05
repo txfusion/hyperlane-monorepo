@@ -801,6 +801,11 @@ async function updateExistingWarpRoute(
 
   await promiseObjAll(
     objMap(expandedWarpDeployConfig, async (chain, config) => {
+      if (multiProvider.getProtocol(chain) !== ProtocolType.Ethereum) {
+        logBlue(`Skipping non-EVM chain ${chain}`);
+        return;
+      }
+
       await retryAsync(async () => {
         const deployedTokenRoute = deployedRoutersAddresses[chain];
         assert(deployedTokenRoute, `Missing artifacts for ${chain}.`);
@@ -1116,17 +1121,20 @@ function groupChainsByProtocol(
   chains: ChainName[],
   multiProvider: MultiProvider,
 ): Record<ProtocolType, ChainName[]> {
-  return chains.reduce((protocolMap, chainName) => {
-    const protocolType = multiProvider.tryGetProtocol(chainName);
-    assert(protocolType, `Protocol not found for chain: ${chainName}`);
+  return chains.reduce(
+    (protocolMap, chainName) => {
+      const protocolType = multiProvider.tryGetProtocol(chainName);
+      assert(protocolType, `Protocol not found for chain: ${chainName}`);
 
-    if (!protocolMap[protocolType]) {
-      protocolMap[protocolType] = [];
-    }
+      if (!protocolMap[protocolType]) {
+        protocolMap[protocolType] = [];
+      }
 
-    protocolMap[protocolType].push(chainName);
-    return protocolMap;
-  }, {} as Record<ProtocolType, ChainName[]>);
+      protocolMap[protocolType].push(chainName);
+      return protocolMap;
+    },
+    {} as Record<ProtocolType, ChainName[]>,
+  );
 }
 
 async function executeStarknetDeployments({

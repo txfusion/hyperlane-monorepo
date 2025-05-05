@@ -62,7 +62,7 @@ const TYPE_CHOICES = Object.values(TokenType).map((type) => ({
   description: TYPE_DESCRIPTIONS[type],
 }));
 
-async function fillDefaults(
+export async function fillDefaults(
   context: CommandContext,
   config: ChainMap<Partial<MailboxClientConfig>>,
 ): Promise<ChainMap<MailboxClientConfig>> {
@@ -136,9 +136,7 @@ export async function createWarpRouteDeployConfig({
     const owner = await detectAndConfirmOrPrompt(
       async () =>
         (await multiProtocolSigner?.getEVMSigner(chain))?.getAddress() ||
-        (
-          await multiProtocolSigner?.getStarknetSigner(chain)
-        )?.address,
+        (await multiProtocolSigner?.getStarknetSigner(chain))?.address,
       'Enter the desired',
       'owner address',
       'signer',

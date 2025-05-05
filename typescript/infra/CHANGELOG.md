@@ -1,5 +1,42 @@
 # @hyperlane-xyz/infra
 
+# <<<<<<< HEAD
+
+## 12.5.0
+
+### Patch Changes
+
+- Updated dependencies [c8ace88]
+  - @hyperlane-xyz/sdk@12.5.0
+  - @hyperlane-xyz/helloworld@12.5.0
+  - @hyperlane-xyz/utils@12.5.0
+
+## 12.4.0
+
+### Patch Changes
+
+- Updated dependencies [d2babb7]
+  - @hyperlane-xyz/sdk@12.4.0
+  - @hyperlane-xyz/helloworld@12.4.0
+  - @hyperlane-xyz/utils@12.4.0
+
+## 12.3.0
+
+### Minor Changes
+
+- 6101959f7: Enhanced the router enrollment check to support non-fully connected warp routes using the `remoteRouters` property from the deployment config.
+
+### Patch Changes
+
+- Updated dependencies [6101959f7]
+- Updated dependencies [5db39f493]
+- Updated dependencies [7500bd6fe]
+  - @hyperlane-xyz/sdk@12.3.0
+  - @hyperlane-xyz/utils@12.3.0
+  - @hyperlane-xyz/helloworld@12.3.0
+
+> > > > > > > origin/main
+
 ## 12.2.0
 
 ### Patch Changes
