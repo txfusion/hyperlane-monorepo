@@ -316,7 +316,7 @@ export class MultiProvider<MetaExt = {}> extends ChainMetadataManager<MetaExt> {
     // setup contract factory
     const overrides = this.getTransactionOverrides(chainNameOrId);
     const signer = this.getSigner(chainNameOrId);
-    const contractFactory = factory.connect(signer);
+    const contractFactory = await factory.connect(signer);
 
     // estimate gas
     const deployTx = contractFactory.getDeployTransaction(...params);
