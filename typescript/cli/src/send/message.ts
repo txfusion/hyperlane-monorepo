@@ -1,5 +1,9 @@
-import { HyperlaneCore, StarknetCore } from '@hyperlane-xyz/sdk';
-import { ChainName, MessageService } from '@hyperlane-xyz/sdk';
+import {
+  ChainName,
+  HyperlaneCore,
+  MessageService,
+  StarknetCore,
+} from '@hyperlane-xyz/sdk';
 import { ProtocolType, timeout } from '@hyperlane-xyz/utils';
 
 import { MINIMUM_TEST_SEND_GAS } from '../consts.js';

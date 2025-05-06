@@ -4,8 +4,7 @@ import { Address, WithAddress, rootLogger } from '@hyperlane-xyz/utils';
 
 import { MultiProtocolProvider } from '../providers/MultiProtocolProvider.js';
 import { StarknetJsProvider } from '../providers/ProviderType.js';
-import { ChainMap } from '../types.js';
-import { ChainNameOrId } from '../types.js';
+import { ChainMap, ChainNameOrId } from '../types.js';
 import {
   StarknetContractName,
   StarknetHookType,
@@ -191,8 +190,8 @@ export class StarknetHookReader {
     );
     const hooks = await hook.get_hooks();
     const hookConfigs = await Promise.all(
-      hooks.map(async (hookAddress: any) => {
-        return await this.deriveHookConfig(num.toHex64(hookAddress.toString()));
+      hooks.map((hookAddress: any) => {
+        return this.deriveHookConfig(num.toHex64(hookAddress.toString()));
       }),
     );
 

@@ -100,7 +100,7 @@ export class StarknetERC20WarpRouteReader {
         const type = TokenType.collateral;
         StarknetERC20WarpRouteReader.tokenTypeCache.set(cacheKey, type);
         return type;
-      } catch (e) {
+      } catch (_e) {
         // Not a collateral token
       }
 
@@ -115,7 +115,7 @@ export class StarknetERC20WarpRouteReader {
         const type = TokenType.native;
         StarknetERC20WarpRouteReader.tokenTypeCache.set(cacheKey, type);
         return type;
-      } catch (e) {
+      } catch (_e) {
         // Not a native token
       }
 

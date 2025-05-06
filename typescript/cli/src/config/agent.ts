@@ -11,7 +11,13 @@ import {
   HyperlaneDeploymentArtifacts,
   buildAgentConfig,
 } from '@hyperlane-xyz/sdk';
-import { assert, objMap, pick, promiseObjAll } from '@hyperlane-xyz/utils';
+import {
+  ProtocolType,
+  assert,
+  objMap,
+  pick,
+  promiseObjAll,
+} from '@hyperlane-xyz/utils';
 
 import { CommandContext } from '../context/types.js';
 import { errorRed, logBlue, logGreen, warnYellow } from '../logger.js';
@@ -45,7 +51,7 @@ export async function createAgentConfig({
 
   Object.keys(chainMetadata).forEach((chain) => {
     const protocol = chainMetadata[chain].protocol;
-    if (protocol === 'starknet') {
+    if (protocol === ProtocolType.Starknet) {
       chainsByProtocol.starknet.push(chain);
     } else {
       chainsByProtocol.ethereum.push(chain);
@@ -73,7 +79,7 @@ export async function createAgentConfig({
     chainMetadata,
   );
 
-  let startBlocks: ChainMap<number | undefined> = {
+  const startBlocks: ChainMap<number | undefined> = {
     ...ethereumStartBlocks,
     ...starknetStartBlocks,
   };
@@ -122,7 +128,6 @@ function filterChainAddresses(
   return pick(addresses, chains);
 }
 
-// handle starknet
 async function getStartBlocks(
   chainAddresses: ChainMap<ChainAddresses>,
   core: HyperlaneCore,

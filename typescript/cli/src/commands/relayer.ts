@@ -22,6 +22,18 @@ import { MessageOptionsArgTypes } from './send.js';
 
 const DEFAULT_RELAYER_CACHE = `${DEFAULT_LOCAL_REGISTRY}/relayer-cache.json`;
 
+// Define supported protocols and their adapter names
+const SUPPORTED_RELAYER_PROTOCOLS = [
+  ProtocolType.Ethereum,
+  ProtocolType.Starknet,
+] as const;
+type SupportedRelayerProtocol = (typeof SUPPORTED_RELAYER_PROTOCOLS)[number];
+
+const ADAPTER_NAMES: Record<SupportedRelayerProtocol, string> = {
+  [ProtocolType.Ethereum]: 'Hyperlane',
+  [ProtocolType.Starknet]: 'Starknet',
+};
+
 export const relayerCommand: CommandModuleWithContext<
   MessageOptionsArgTypes & {
     chains?: string;
@@ -42,7 +54,7 @@ export const relayerCommand: CommandModuleWithContext<
     symbol: symbolCommandOption,
     warp: warpCoreConfigCommandOption,
   },
-  handler: async ({ context, cache, chains, symbol, warp }) => {
+  handler: async ({ context, chains, symbol, warp }) => {
     const chainAddresses = await context.registry.getAddresses();
     const chainsArray =
       chains?.split(',').map((_) => _.trim()) ?? Object.keys(chainAddresses);
@@ -64,13 +76,7 @@ export const relayerCommand: CommandModuleWithContext<
     }
 
     const protocols = new Set<ProtocolType>();
-    const chainsByProtocol: Record<ProtocolType, string[]> = {
-      [ProtocolType.Ethereum]: [],
-      [ProtocolType.Starknet]: [],
-      [ProtocolType.Cosmos]: [],
-      [ProtocolType.Sealevel]: [],
-      [ProtocolType.CosmosNative]: [],
-    };
+    const chainsByProtocol: Partial<Record<ProtocolType, string[]>> = {};
 
     const cores: {
       [ProtocolType.Ethereum]?: HyperlaneCore;
@@ -80,17 +86,18 @@ export const relayerCommand: CommandModuleWithContext<
     chainsArray.forEach((chain) => {
       const protocol = context.multiProvider.getProtocol(chain);
       protocols.add(protocol);
+      if (!chainsByProtocol[protocol]) {
+        chainsByProtocol[protocol] = [];
+      }
       chainsByProtocol[protocol]?.push(chain);
     });
 
     // Initialize cores based on protocols
-    const initializeCore = (
-      protocol: ProtocolType.Ethereum | ProtocolType.Starknet,
-    ) => {
-      if (!protocols.has(protocol)) return;
+    const initializeCore = (protocol: SupportedRelayerProtocol) => {
+      if (!protocols.has(protocol) || !chainsByProtocol[protocol]) return;
 
       const protocolAddresses: ChainMap<any> = {};
-      chainsByProtocol[protocol].forEach(
+      chainsByProtocol[protocol]!.forEach(
         (chain) =>
           chainAddresses[chain] &&
           (protocolAddresses[chain] = chainAddresses[chain]),
@@ -114,28 +121,31 @@ export const relayerCommand: CommandModuleWithContext<
       }
     };
 
-    initializeCore(ProtocolType.Ethereum);
-    initializeCore(ProtocolType.Starknet);
-
     const messageBus = new MessageBus(context.multiProvider);
 
     log('Initialized Message Bus for cross-protocol communication');
 
     const initializeAdapter = (
-      protocolType: ProtocolType.Ethereum | ProtocolType.Starknet,
-      adapterName: string,
-    ) => {
+      protocolType: SupportedRelayerProtocol,
+    ): string | false => {
+      const adapterName = ADAPTER_NAMES[protocolType];
+
+      // Ensure chains are configured for this protocol and protocol is active
+      if (!chainsByProtocol[protocolType] || !protocols.has(protocolType)) {
+        return false;
+      }
+
       const core = cores[protocolType];
       if (!core) return false;
 
       const protocolWhitelist: ChainMap<Address[]> = {};
-      chainsByProtocol[protocolType].forEach((chain) => {
+      chainsByProtocol[protocolType]!.forEach((chain) => {
         if (whitelist[chain]) {
           protocolWhitelist[chain] = whitelist[chain];
         }
       });
 
-      const adapter =
+      const adapter: EvmAdapter | StarknetAdapter =
         protocolType === ProtocolType.Starknet
           ? new StarknetAdapter(core as StarknetCore, protocolWhitelist)
           : new EvmAdapter(core as HyperlaneCore, protocolWhitelist);
@@ -144,13 +154,26 @@ export const relayerCommand: CommandModuleWithContext<
       adapter.listenForMessages(messageBus);
 
       log(`${adapterName} adapter registered with Message Bus`);
-      return true;
+      return adapterName;
     };
 
-    initializeAdapter(ProtocolType.Starknet, 'Starknet');
-    initializeAdapter(ProtocolType.Ethereum, 'Hyperlane');
+    const initializedAdapterNames: string[] = [];
+    for (const protocol of SUPPORTED_RELAYER_PROTOCOLS) {
+      if (protocols.has(protocol)) {
+        // Check if the chain list includes this protocol
+        initializeCore(protocol);
+        const adapterNameResult = initializeAdapter(protocol);
+        if (adapterNameResult) {
+          initializedAdapterNames.push(adapterNameResult);
+        }
+      }
+    }
 
-    log('Starknet relayer initialized successfully.');
+    if (initializedAdapterNames.length > 0) {
+      log(`Initialized ${initializedAdapterNames.join(' and ')} adapter(s).`);
+    } else {
+      log('No relayer adapters were initialized for the configured chains.');
+    }
 
     // Start the message bus
     messageBus.start();

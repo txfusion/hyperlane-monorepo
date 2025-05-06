@@ -220,7 +220,7 @@ export async function runWarpRouteDeploy({
         }
         break;
 
-      case ProtocolType.Starknet:
+      case ProtocolType.Starknet: {
         assert(
           multiProtocolSigner,
           'multi protocol signer is required for starknet chain deployment',
@@ -254,6 +254,7 @@ export async function runWarpRouteDeploy({
         deploymentAddWarpRouteOptions = addWarpRouteOptions;
         deployments.tokens = [...deployments.tokens, ...warpCoreConfig.tokens];
         break;
+      }
 
       default:
         throw new Error(`Unsupported protocol type: ${protocol}`);

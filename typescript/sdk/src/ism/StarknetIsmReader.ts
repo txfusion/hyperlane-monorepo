@@ -82,9 +82,7 @@ export class StarknetIsmReader {
 
     const moduleConfigs = await Promise.all(
       modules.map(async (moduleAddress: any) => {
-        return await this.deriveIsmConfig(
-          num.toHex64(moduleAddress.toString()),
-        );
+        return this.deriveIsmConfig(num.toHex64(moduleAddress.toString()));
       }),
     );
 
