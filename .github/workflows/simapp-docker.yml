@@ -1,16 +1,15 @@
-name: Build and Push Agent Image to GCR
+name: Build and Push Cosmos Simapp Image to GCR
 on:
-  push:
-    branches: [main]
-    tags:
-      - '**'
-  pull_request:
-    paths:
-      - 'rust/**'
-      - '.github/workflows/rust-docker.yml'
+  workflow_dispatch:
+    inputs:
+      hyperlane_cosmos_branch:
+        description: 'Branch, ref, or tag to build'
+        default: 'v1.0.0-beta0'
+
 concurrency:
-  group: build-push-agents-${{ github.ref }}
+  group: build-push-cosmos-simapp-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   check-env:
     runs-on: ubuntu-latest
@@ -35,27 +34,12 @@ jobs:
     # uses check-env to determine if secrets.GCLOUD_SERVICE_KEY is defined
     needs: [check-env]
     if: needs.check-env.outputs.gcloud-service-key == 'true'
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Generate tag data
-        id: taggen
-        run: |
-          echo "TAG_DATE=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
-          echo "TAG_SHA=$(echo '${{ github.event.pull_request.head.sha || github.sha }}' | cut -b 1-7)" >> $GITHUB_OUTPUT
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          # list of Docker images to use as base name for tags
-          images: |
-            gcr.io/abacus-labs-dev/hyperlane-agent
-          # generate Docker tags based on the following events/attributes
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=raw,value=${{ steps.taggen.outputs.TAG_SHA }}-${{ steps.taggen.outputs.TAG_DATE }}
+          submodules: recursive
       - name: Set up Depot CLI
         uses: depot/setup-action@v1
       - name: Login to GCR
@@ -67,10 +51,12 @@ jobs:
       - name: Build and push
         uses: depot/build-push-action@v1
         with:
-          project: czmkmn2km1
-          context: .
-          file: ./rust/Dockerfile
+          project: 3cpjhx94qv
+          context: ./typescript/cosmos-sdk
+          file: ./typescript/cosmos-sdk/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            gcr.io/abacus-labs-dev/hyperlane-cosmos-simapp:${{ github.event.inputs.hyperlane_cosmos_branch || 'v1.0.0-beta0' }}
+          build-args: |
+            BRANCH_NAME=${{ github.event.inputs.hyperlane_cosmos_branch || 'v1.0.0-beta0' }}
           platforms: linux/amd64,linux/arm64
