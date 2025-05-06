@@ -67,9 +67,9 @@ import {
 } from './adapters/SealevelTokenAdapter.js';
 import {
   StarknetHypCollateralAdapter,
+  StarknetHypNativeAdapter,
   StarknetHypSyntheticAdapter,
 } from './adapters/StarknetTokenAdapter.js';
-import { StarknetHypNativeAdapter } from './adapters/StarknetTokenAdapter.js';
 import { PROTOCOL_TO_DEFAULT_NATIVE_TOKEN } from './nativeTokenMetadata.js';
 
 // Declaring the interface in addition to class allows

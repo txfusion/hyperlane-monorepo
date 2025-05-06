@@ -1,5 +1,5 @@
 import { constants } from 'ethers';
-import { Contract, shortString } from 'starknet';
+import { shortString } from 'starknet';
 
 import {
   ERC20__factory,
@@ -23,6 +23,7 @@ import { MultiProvider } from '../providers/MultiProvider.js';
 import { defaultStarknetJsProviderBuilder } from '../providers/providerBuilders.js';
 import { GasRouterDeployer } from '../router/GasRouterDeployer.js';
 import { ChainName } from '../types.js';
+import { getStarknetHypERC20Contract } from '../utils/starknet.js';
 
 import { TokenType, gasOverhead } from './config.js';
 import {
@@ -193,32 +194,7 @@ abstract class TokenDeployer<
             break;
         }
         if (isStarknet) {
-          // TODO: check if taking ABI from starknet-core might break this
-          const erc20Abi = [
-            {
-              name: 'name',
-              type: 'function',
-              inputs: [],
-              outputs: [{ name: '', type: 'felt' }],
-              stateMutability: 'view',
-            },
-            {
-              name: 'symbol',
-              type: 'function',
-              inputs: [],
-              outputs: [{ name: '', type: 'felt' }],
-              stateMutability: 'view',
-            },
-            {
-              name: 'decimals',
-              type: 'function',
-              inputs: [],
-              outputs: [{ name: '', type: 'felt' }],
-              stateMutability: 'view',
-            },
-          ];
-          // Create contract instance
-          const erc20 = new Contract(erc20Abi, token, provider);
+          const erc20 = getStarknetHypERC20Contract(token, provider);
           const [nameResult, symbolResult, decimalsResult] = await Promise.all([
             erc20.name(),
             erc20.symbol(),
