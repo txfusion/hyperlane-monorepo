@@ -71,7 +71,7 @@ export async function runCoreDeploy(params: DeployParams) {
     apiKeys = await requestAndSaveApiKeys([chain], chainMetadata, registry);
 
   const deploymentParams: DeployParams = {
-    context: { ...context },
+    context,
     chain,
     config,
   };
