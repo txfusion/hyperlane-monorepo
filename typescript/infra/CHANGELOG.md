@@ -1,7 +1,5 @@
 # @hyperlane-xyz/infra
 
-# <<<<<<< HEAD
-
 ## 12.5.0
 
 ### Patch Changes
@@ -34,8 +32,6 @@
   - @hyperlane-xyz/sdk@12.3.0
   - @hyperlane-xyz/utils@12.3.0
   - @hyperlane-xyz/helloworld@12.3.0
-
-> > > > > > > origin/main
 
 ## 12.2.0
 

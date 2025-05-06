@@ -1,7 +1,5 @@
 # @hyperlane-xyz/helloworld
 
-# <<<<<<< HEAD
-
 ## 12.5.0
 
 ### Patch Changes
@@ -27,8 +25,6 @@
 - Updated dependencies [7500bd6fe]
   - @hyperlane-xyz/sdk@12.3.0
   - @hyperlane-xyz/core@7.1.2
-
-> > > > > > > origin/main
 
 ## 12.2.0
 
