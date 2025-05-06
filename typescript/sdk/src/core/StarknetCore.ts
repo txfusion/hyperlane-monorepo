@@ -207,7 +207,7 @@ export class StarknetCore {
         }
       };
 
-      const intervalId = setInterval(pollForEvents, 10000); // Poll every 15 seconds
+      const intervalId = setInterval(pollForEvents, 15000); // Poll every 15 seconds
 
       pollForEvents().catch((error) => {
         this.logger.error(

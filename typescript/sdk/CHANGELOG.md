@@ -1,7 +1,5 @@
 # @hyperlane-xyz/sdk
 
-# <<<<<<< HEAD
-
 ## 12.5.0
 
 ### Patch Changes
@@ -37,8 +35,6 @@
   - @hyperlane-xyz/utils@12.3.0
   - @hyperlane-xyz/core@7.1.2
   - @hyperlane-xyz/cosmos-sdk@12.3.0
-
-> > > > > > > origin/main
 
 ## 12.2.0
 

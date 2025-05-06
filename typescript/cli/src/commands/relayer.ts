@@ -84,7 +84,7 @@ export const relayerCommand: CommandModuleWithContext<
     } = {};
 
     chainsArray.forEach((chain) => {
-      const protocol = context.multiProvider.getProtocol(chain);
+      const protocol: ProtocolType = context.multiProvider.getProtocol(chain);
       protocols.add(protocol);
       if (!chainsByProtocol[protocol]) {
         chainsByProtocol[protocol] = [];

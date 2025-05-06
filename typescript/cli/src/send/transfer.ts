@@ -96,8 +96,8 @@ async function executeDelivery({
   skipWaitForDelivery: boolean;
   selfRelay?: boolean;
 }) {
-  const { multiProvider, registry, multiProtocolProvider } = context;
-  const { chainMetadata } = context;
+  const { multiProvider, registry, multiProtocolProvider, chainMetadata } =
+    context;
 
   const chainAddresses = await registry.getAddresses();
 
@@ -108,7 +108,7 @@ async function executeDelivery({
 
   // Initialize cores for the chains
   for (const chain of [origin, destination]) {
-    const protocol = chainMetadata[chain].protocol;
+    const protocol: ProtocolType = chainMetadata[chain].protocol;
     if (!protocolCores[protocol]) {
       if (protocol === ProtocolType.Starknet) {
         protocolCores[protocol] = new StarknetCore(
@@ -217,8 +217,6 @@ async function executeDelivery({
   logBlue(`Message ID: ${message.id}`);
   logBlue(`Explorer Link: ${EXPLORER_URL}/message/${message.id}`);
   log(`Message:\n${indentYamlOrJson(yamlStringify(message, null, 2), 4)}`);
-
-  logBlue(`Message dispatched with ID: ${message.id}`);
 
   if (selfRelay) {
     log('Attempting self-relay of message');
