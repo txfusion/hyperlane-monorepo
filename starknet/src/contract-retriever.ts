@@ -1,7 +1,6 @@
 import { CairoAssembly, CompiledContract } from 'starknet';
 
 import { starknetContracts } from './artifacts/index.js';
-import { CONFIG } from './config.js';
 import { ERR_CODES } from './const.js';
 import { ContractError } from './errors.js';
 import { ContractType, StarknetContractGroup } from './types.js';
@@ -47,21 +46,24 @@ export function getCompiledContractCasm(
   name: string,
   contractType: ContractType = ContractType.CONTRACT,
 ): CairoAssembly {
-  try {
-    const group = getContractGroup(contractType);
-    const contract = group[name];
+  const group = getContractGroup(contractType);
+  const contract = group[name];
 
-    if (!contract?.compiled_contract_class) {
-      throw new Error('Contract not found or missing CASM class');
-    }
-
-    return contract.compiled_contract_class;
-  } catch (_error) {
-    throw new ContractError(CONFIG.CONTRACT_ERROR_CODES.FILE_NOT_FOUND, {
+  if (!contract) {
+    throw new ContractError(ERR_CODES.CONTRACT_NOT_FOUND, {
       name,
       type: contractType,
     });
   }
+
+  if (!contract?.compiled_contract_class) {
+    throw new ContractError(ERR_CODES.CASM_NOT_FOUND, {
+      name,
+      type: contractType,
+    });
+  }
+
+  return contract.compiled_contract_class;
 }
 
 /**
