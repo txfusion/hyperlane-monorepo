@@ -1,5 +1,6 @@
 import { num } from 'starknet';
 
+import { DerivedCoreConfig } from '@hyperlane-xyz/sdk';
 import { Address, rootLogger } from '@hyperlane-xyz/utils';
 
 import { StarknetHookReader } from '../hook/StarknetHookReader.js';
@@ -8,8 +9,6 @@ import { MultiProtocolProvider } from '../providers/MultiProtocolProvider.js';
 import { StarknetJsProvider } from '../providers/ProviderType.js';
 import { ChainNameOrId } from '../types.js';
 import { getStarknetMailboxContract } from '../utils/starknet.js';
-
-import { CoreConfig } from './types.js';
 
 export class StarknetCoreReader {
   protected readonly logger = rootLogger.child({
@@ -28,7 +27,7 @@ export class StarknetCoreReader {
     this.hookReader = new StarknetHookReader(this.multiProvider, this.chain);
   }
 
-  async deriveCoreConfig(mailboxAddress: Address): Promise<CoreConfig> {
+  async deriveCoreConfig(mailboxAddress: Address): Promise<DerivedCoreConfig> {
     const mailbox = getStarknetMailboxContract(mailboxAddress, this.provider);
 
     const [defaultIsm, defaultHook, requiredHook, owner] = (

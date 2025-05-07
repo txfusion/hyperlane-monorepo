@@ -711,6 +711,7 @@ export {
 } from './ccip/utils.js';
 export { HyperlaneCCIPDeployer } from './ccip/HyperlaneCCIPDeployer.js';
 export { StarknetCoreModule } from './core/StarknetCoreModule.js';
+export { StarknetCoreReader } from './core/StarknetCoreReader.js';
 export { StarknetERC20WarpModule } from './token/StarknetERC20WarpModule.js';
 export { StarknetCore } from './core/StarknetCore.js';
 export { MessageService } from './messaging/MessageService.js';
