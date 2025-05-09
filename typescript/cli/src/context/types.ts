@@ -7,6 +7,8 @@ import type {
   ChainMetadata,
   MultiProtocolProvider,
   MultiProvider,
+  WarpCoreConfig,
+  WarpRouteDeployConfigMailboxRequired,
 } from '@hyperlane-xyz/sdk';
 
 import { MultiProtocolSignerManager } from './strategies/signer/MultiProtocolSignerManager.js';
@@ -40,6 +42,8 @@ export interface WriteCommandContext extends CommandContext {
   signer: ethers.Signer;
   isDryRun?: boolean;
   dryRunChain?: string;
+  warpDeployConfig?: WarpRouteDeployConfigMailboxRequired;
+  warpCoreConfig?: WarpCoreConfig;
   multiProtocolSigner?: MultiProtocolSignerManager;
 }
 
