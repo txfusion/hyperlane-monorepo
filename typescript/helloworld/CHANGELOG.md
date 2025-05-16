@@ -1,5 +1,12 @@
 # @hyperlane-xyz/helloworld
 
+## 13.0.0
+
+### Patch Changes
+
+- @hyperlane-xyz/core@7.1.6
+- @hyperlane-xyz/sdk@13.0.0
+
 ## 12.6.0
 
 ### Minor Changes
