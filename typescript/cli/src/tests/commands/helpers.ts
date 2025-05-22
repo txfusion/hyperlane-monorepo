@@ -20,7 +20,7 @@ import {
   WarpCoreConfig,
   WarpCoreConfigSchema,
 } from '@hyperlane-xyz/sdk';
-import { Address, sleep } from '@hyperlane-xyz/utils';
+import { Address, inCIMode, sleep } from '@hyperlane-xyz/utils';
 
 import { getContext } from '../../context/context.js';
 import { CommandContext } from '../../context/types.js';
@@ -40,6 +40,8 @@ export const TEMP_PATH = '/tmp'; // /temp gets removed at the end of all-test.sh
 
 export const ANVIL_KEY =
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+export const ANVIL_DEPLOYER_ADDRESS =
+  '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 export const E2E_TEST_BURN_ADDRESS =
   '0x0000000000000000000000000000000000000001';
 
@@ -372,6 +374,7 @@ export async function deployToken(
   chain: string,
   decimals = 18,
   symbol = 'TOKEN',
+  name = 'token',
 ): Promise<ERC20Test> {
   const { multiProvider } = await getContext({
     registryUris: [REGISTRY_PATH],
@@ -383,12 +386,7 @@ export async function deployToken(
 
   const token = await new ERC20Test__factory(
     multiProvider.getSigner(chain),
-  ).deploy(
-    'token',
-    symbol.toLocaleUpperCase(),
-    '100000000000000000000',
-    decimals,
-  );
+  ).deploy(name, symbol.toLocaleUpperCase(), '100000000000000000000', decimals);
   await token.deployed();
 
   return token;
@@ -493,11 +491,17 @@ export async function sendWarpRouteMessageRoundTrip(
   return hyperlaneWarpSendRelay(chain2, chain1, warpCoreConfigPath);
 }
 
+// Verifies if the IS_CI var is set and generates the correct prefix for running the command
+// in the current env
+export function localTestRunCmdPrefix() {
+  return inCIMode() ? [] : ['yarn', 'workspace', '@hyperlane-xyz/cli', 'run'];
+}
+
 export async function hyperlaneSendMessage(
   origin: string,
   destination: string,
 ) {
-  return $`yarn workspace @hyperlane-xyz/cli run hyperlane send message \
+  return $`${localTestRunCmdPrefix()} hyperlane send message \
         --registry ${REGISTRY_PATH} \
         --origin ${origin} \
         --destination ${destination} \
@@ -507,7 +511,7 @@ export async function hyperlaneSendMessage(
 }
 
 export function hyperlaneRelayer(chains: string[], warp?: string) {
-  return $`yarn workspace @hyperlane-xyz/cli run hyperlane relayer \
+  return $`${localTestRunCmdPrefix()} hyperlane relayer \
         --registry ${REGISTRY_PATH} \
         --chains ${chains.join(',')} \
         --warp ${warp ?? ''} \

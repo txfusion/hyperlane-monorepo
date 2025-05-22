@@ -6,6 +6,7 @@
 
 use std::{collections::HashSet, path::PathBuf, time::Duration};
 
+use aws_config::Region;
 use derive_more::{AsMut, AsRef, Deref, DerefMut};
 use eyre::{eyre, Context};
 use hyperlane_base::{
@@ -54,6 +55,8 @@ pub struct ValidatorSettings {
     pub rpcs: Vec<RpcConfig>,
     /// If the validator oped into public RPCs
     pub allow_public_rpcs: bool,
+    /// Max sign concurrency
+    pub max_sign_concurrency: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -152,6 +155,12 @@ impl FromRawConf<RawValidatorSettings> for ValidatorSettings {
             .end()
             .unwrap();
 
+        let max_sign_concurrency = p
+            .chain(&mut err)
+            .get_opt_key("maxSignConcurrency")
+            .parse_u64()
+            .unwrap_or(50) as usize;
+
         let mut rpcs = get_rpc_urls(&chain, "rpcUrls", "customRpcUrls", &mut err);
         // this is only relevant for cosmos
         rpcs.extend(get_rpc_urls(&chain, "grpcUrls", "customGrpcUrls", &mut err));
@@ -176,6 +185,7 @@ impl FromRawConf<RawValidatorSettings> for ValidatorSettings {
             interval,
             rpcs,
             allow_public_rpcs,
+            max_sign_concurrency,
         })
     }
 }
@@ -259,7 +269,8 @@ fn parse_checkpoint_syncer(syncer: ValueParser) -> ConfigResult<CheckpointSyncer
                 .parse_string()
                 .end()
                 .map(str::to_owned);
-            let region = syncer
+            // Using rusoto_core::Region just to get some input validation
+            let region: Option<rusoto_core::Region> = syncer
                 .chain(&mut err)
                 .get_key("region")
                 .parse_from_str("Expected aws region")
@@ -274,7 +285,7 @@ fn parse_checkpoint_syncer(syncer: ValueParser) -> ConfigResult<CheckpointSyncer
             cfg_unwrap_all!(&syncer.cwp, err: [bucket, region]);
             err.into_result(CheckpointSyncerConf::S3 {
                 bucket,
-                region,
+                region: Region::new(region.name().to_owned()),
                 folder,
             })
         }
@@ -325,7 +336,7 @@ mod test {
 
     #[test]
     fn test_get_rpc_urls_explicit() {
-        let expected = vec![
+        let expected = [
             RpcConfig {
                 url: "http://my-rpc-url.com".to_string(),
                 public: true,
@@ -382,9 +393,9 @@ mod test {
 
         assert_eq!(parsed.len(), 2);
         assert_eq!(parsed[0].url, "http://my-rpc-url.com");
-        assert_eq!(parsed[0].public, false);
+        assert!(!parsed[0].public);
         assert_eq!(parsed[1].url, "http://my-rpc-url-2.com");
-        assert_eq!(parsed[1].public, false);
+        assert!(!parsed[1].public);
     }
 
     #[test]
@@ -410,8 +421,8 @@ mod test {
 
         assert_eq!(parsed.len(), 2);
         assert_eq!(parsed[0].url, "http://my-rpc-url-3.com");
-        assert_eq!(parsed[0].public, false);
+        assert!(!parsed[0].public);
         assert_eq!(parsed[1].url, "http://my-rpc-url-4.com");
-        assert_eq!(parsed[1].public, false);
+        assert!(!parsed[1].public);
     }
 }
